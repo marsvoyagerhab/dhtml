@@ -1,0 +1,107 @@
+:root {
+    --view-max-width: 450px;
+    --h1-top: 96px;
+
+    --background-red: 3;
+    --background-green: 8;
+    --background-blue: 30;
+
+    --background-color: rgb(var(--background-red), var(--background-green), var(--background-blue));
+    --background-color-transp: rgba(var(--background-red), var(--background-green), var(--background-blue), 0.7);
+    
+    --text-color: #ACA39A;
+    --accent-color: #B77729;
+    --transparent: rgba(0,0,0,0);
+
+    --font-family-body: Quicksand, "Open Sans", sans-serif;
+    --font-family-h: Quicksand, "Lato", sans-serif;
+
+    --font-weight: 400;
+    --font-weightBold: 650;
+    --font-weightBolder: 700;
+
+    --pre-focus-border: solid 1px var(--transparent);
+    --focus-border: dotted 1px var(--accent-color);
+}
+
+body {
+    max-width: 450px; /* GENERATED CSS ROW */
+    max-width: var(--view-max-width);
+	
+	width: 450px;
+	
+    padding: 0px 0px 12px 0px; 
+    color: #ACA39A; /* GENERATED CSS ROW */
+    color: var(--text-color);
+    background-color: rgb(3, 8, 30); /* GENERATED CSS ROW */
+    background-color: var(--background-color);
+    font-family: Quicksand, "Open Sans", sans-serif; /* GENERATED CSS ROW */
+    font-family: var(--font-family-body);
+    font-weight: 400; /* GENERATED CSS ROW */
+    font-weight: var(--font-weight);
+}
+
+h1 {
+    padding: 3px 10px 3px 10px;
+    margin: 0px  20px;
+    top: 96px; /* GENERATED CSS ROW */
+    top: var(--h1-top); /* tag name will be updated at resize */
+
+    font-family: Quicksand, "Lato", sans-serif; /* GENERATED CSS ROW */
+    font-family: var(--font-family-h);
+    font-size: 18px;
+    font-weight: 650; /* GENERATED CSS ROW */
+    font-weight: var(--font-weightBold);
+}
+h2 {
+    font-size: 16px;
+}
+
+/*  Links */
+
+a {
+    outline: none;
+    text-decoration: none;
+    border: none;
+}
+
+a:link {
+    color: #ACA39A; /* GENERATED CSS ROW */
+    color: var(--text-color);    
+}
+a:visited {
+    color: #ACA39A; /* GENERATED CSS ROW */
+    color: var(--text-color);    
+}
+
+/* hover after link and visited */
+a:hover {
+    color: #B77729; /* GENERATED CSS ROW */
+    color: var(--accent-color);
+    text-decoration: underline;
+}
+a:hover * {
+    color: #B77729; /* GENERATED CSS ROW */
+    color: var(--accent-color);
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+/* active after hover */
+a:active {
+    font-weight: 700; /* GENERATED CSS ROW */
+    font-weight: var(--font-weightBolder);
+}
+
+/* no stupid half border, instead put focus border on the content */
+a * {
+    border: solid 1px rgba(0,0,0,0); /* GENERATED CSS ROW */
+    border: var(--pre-focus-border);
+}
+a:focus {
+    border: none;
+}
+a:focus * {
+    border: dotted 1px #B77729; /* GENERATED CSS ROW */
+    border: var(--focus-border);
+}
