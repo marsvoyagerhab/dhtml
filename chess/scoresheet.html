@@ -1,0 +1,96 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- Mars Voyager, 2021-01-08 -->
+<html>
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <title>Mars Voyager on Chess</title>
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+
+        <link rel="preconnect" href="https://fonts.gstatic.com">
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"> 
+
+        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
+  
+        <style>
+        </style>
+    </head>
+    <body>
+        <h1>Mars Voyager on Chess</h1>
+        <h2>Scoresheet of recent moves</h2>
+        
+        <div>
+            <table id="Scoresheet">
+                <tr><th>#</th><th>White</th><th>Black</th></tr>
+            </table>
+        
+            <ul>
+                <li><a href="javascript:history.back()">Go back (to the board)</a></li>
+                <li><a href="index.html">To a new Chess board</a></li>
+            </ul>
+        </div>
+        <a href="../index.html"><div id="Main"></div></a>
+        
+
+        <script id="pageScriptId">//<![CDATA[
+        updatePage();        
+        
+        const SHEET = document.getElementById("Scoresheet")
+        
+        SHEET.value = createRows(getQueryValue("Move", 0), getQueryValue("Rec", ""));          
+                
+        
+        function createRows(number, value) {
+            let moves = value.split(",");
+            let n = 2;
+            if (moves[moves.length - 1].split(".")[1] == "") {
+                n = 1;
+            }
+            for (let i = 0; i < moves.length; i++) {
+                if (moves[i] != "") { // the final ","
+                    let tr = document.createElement("TR");
+                    SHEET.appendChild(tr);
+                
+                    let td = document.createElement("TD");
+                    tr.appendChild(td);
+
+                    let cols = moves[i].split(".");
+                    td.innerHTML = (number - moves.length + i + n) + ". ";
+                
+                    for (let c = 0; c < cols.length; c++) {
+                        td = document.createElement("TD");
+                        tr.appendChild(td);
+                        td.innerHTML = cols[c];
+                    }        
+                }        
+            }
+        }
+        
+        function getQueryValue(param, defaultValue) {
+            // new URLSearchParams, no support in IE
+            let query = window.location.search; // "?param=value&param2=value2"
+            let i = query.indexOf(param + "=");
+            let value;
+            if (i > -1) {
+                let e = query.indexOf("&", i);
+                if (e > -1) {
+                    value = query.substring(i + param.length + 1, e);
+                } else {
+                    value = query.substring(i + param.length + 1);
+                }
+            } else {
+                value = defaultValue;
+            }
+            return value;
+        }
+        
+        //]]></script>
+    </body>
+</html>
