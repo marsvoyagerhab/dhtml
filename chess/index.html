@@ -21,7 +21,6 @@
   
         <style>
         img#Board {
-            z-index: 0;
             position: absolute;
             left: 0px;
             top: 0px;
@@ -47,14 +46,14 @@
     <body>
         <h1><span id="MoveSpan"></span>Mars Voyager on Chess</h1>
                 
-        <div id="BoardDiv" style="min-height:500px;min-width:450px;width:450px;">
+        <div id="BoardDiv" style="min-height:500px;width:450px;">
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
             <canvas id="Border" onmousedown="userTurnBoard()"></canvas>
         
             <img id="Board" src="images/Board.png"/>
         </div>
         
-        <div id="Instructions" style="max-width:450px;width:450px;">
+        <div id="Instructions" style="width:450px;">
             <div>Instructions</div>
             <ul>
                 <li>The last moved piece is marked blue.</li>
@@ -67,7 +66,7 @@
             </ul>
             <ul>
                 <li>Click <a href="index.html">New Game</a> for a new game to share.</li>
-                <li>You can click the last moved piece, marked blue, to see the move.</li>
+                <li>You can click the last moved piece to see the move again.</li>
                 <li>Click the board border to turn the board.</li>
                 <li>Click the King first to perform castling.</li>
                 <li>Promotion is done by default to Queen, click it to change to another piece before sharing.</li>
@@ -109,6 +108,8 @@
         
         const STARTPOSITIONS = "BRa8.BRh8.BNb8.BNg8.BBc8.BBf8.BQd8.BKe8.BPa7.BPb7.BPc7.BPd7.BPe7.BPf7.BPg7.BPh7." +
                                "WRa1.WRh1.WNb1.WNg1.WBc1.WBf1.WQd1.WKe1.WPa2.WPb2.WPc2.WPd2.WPe2.WPf2.WPg2.WPh2.";
+                               
+        // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
         
         const HEADERHEIGHT = 50;
         const BOARD = 400;
@@ -122,7 +123,9 @@
         const LASTMOVEMARK = "blue";
         const BORDERCOLOR = "green"; // selection and valid moves
         const LINEWIDTH = 4; // for borders around squares
-        const ALPHA = "0.2"; // lower is more transparent        
+        const ALPHA = "0.2"; // lower is more transparent
+        
+        const ANIMTIME = 500; // animation delay (ms)   
         
         let DIV = document.getElementById("BoardDiv");
         DIV.height = BOARD + 2*BORDERW ;
@@ -198,7 +201,7 @@
         let addedPiecesIndex = 0;
         let moveShown = false;
         placePieces(queryPositions);
-        setTimeout(function() { showMove(queryFrom, queryTo, false);}, 500);
+        setTimeout(function() { showMove(queryFrom, queryTo, false); }, ANIMTIME);
 
         /* the user switches the automatic turning */
         function setTurnBoard() {
@@ -263,7 +266,7 @@
                         placePieces(queryPositions);
                         
                         moveShown = false;
-                        setTimeout(function() { showMove(queryFrom, queryTo, false);}, 500);
+                        setTimeout(function() { showMove(queryFrom, queryTo, false); }, ANIMTIME);
                     }
                     return;
                 }
@@ -1014,12 +1017,12 @@
                 QMOVES + "=" + queryMoves + "&" +
                 QREC + "=" + shortAlgebraic();
         
-            // replace prohibits using Back
-            // the user can still reload shared link
             if (DEBUG || allowBack) {
-                setTimeout(function() { window.location.href = href;}, 1000);
+                window.location.href = href;
             } else {
-                setTimeout(function() { window.location.replace(href);}, 1000);
+                // replace prohibits using Back
+                // the user can still reload shared link
+                window.location.replace(href);
             }
         }
         function shortAlgebraic() {
@@ -1174,6 +1177,9 @@
         /*
         Sparse board
         ?Pos=BRa8.BRf1.BBc2.BBh2.BKe6.BPa7.BPb6.BPf3.BPg4.BPh6.WRa1.WRh1.WNb1.WNf4.WKe3.WPa5.WPb5.WPg2.WPh5.&From=g4&To=g3&Prom=P&Cast=e8e1h8&Turn=true
+        
+        Rec issue
+        ?Rec=d4.d5,e4.e5,f4.c5,Qh5.Qh5.Qh5.Qh4+,Bc4.Nf6+,Nf3.Bh3+,Be3.Bd6+,Nc3.Na6+,f5.Qg5,0-0-0.0-0-0,Bb5.c4,Nxd5.Nxd5.
         */
         
         //]]></script>
