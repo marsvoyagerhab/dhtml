@@ -9,35 +9,1179 @@
 
         <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
 
-        <title>Mars Voyager on Creativity</title>
+        <title>Mars Voyager on Chess</title>
 
-        <script type="text/javascript" src="marsvoyager.js"></script>
+        <script type="text/javascript" src="../marsvoyager.js"></script>
 
         <link rel="preconnect" href="https://fonts.gstatic.com">
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"> 
 
-        <link rel="stylesheet" href="marsvoyager.css" type="text/css"/>
-        <link rel="icon" href="images/MarsVoyager_100x100.png"/>
+        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
   
         <style>
+        img#Board {
+            position: absolute;
+            left: 0px;
+            top: 0px;
+        }
+        img.Piece {
+            z-index: 10;
+            position: absolute;
+        }
+        canvas#Border {
+            z-index: 20;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+        }
+        canvas#Overlay {
+            z-index: 30;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+        }
         </style>
     </head>
     <body>
-        <h1>Mars Voyager on Creativity</h1>
-        <h2>Welcome</h2>
+        <h1><span id="MoveSpan"></span>Mars Voyager on Chess</h1>
+                
+        <div id="BoardDiv" style="min-height:500px;width:450px;">
+            <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
+            <canvas id="Border" onmousedown="userTurnBoard()"></canvas>
         
-        <img src="images/MarsVoyager_100x100.png"/>
+            <img id="Board" src="images/Board.png"/>
+        </div>
         
-        <div>
+        <div id="Instructions" style="width:450px;">
+            <div>Instructions</div>
             <ul>
-                <li><a href="chess/index.html">To a new Chess board</a></li>
+                <li>The last moved piece is marked blue.</li>
+                <li>Click your piece to move.</li>
+                <li>Click in a marked valid square to perform the move.</li>
+                <li>Share the page address via your messaging app to your opponent.</li>
+        
+                <!-- from 2021-01-10 uses window.location.replace -->
+                <!--<li>Or, you can use Back to undo your move.</li> -->
+            </ul>
+            <ul>
+                <li>Click <a href="index.html">New Game</a> for a new game to share.</li>
+                <li>You can click the last moved piece to see the move again.</li>
+                <li>Click the board border to turn the board.</li>
+                <li>Click the King first to perform castling.</li>
+                <li>Promotion is done by default to Queen, click it to change to another piece before sharing.</li>
+                <li>Checkmate is not currently identified.</li>
+            </ul>
+        
+            <div>Wikipedia links to moves</div>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Chess#Movement">Chess pieces and how they move</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Castling">Castling</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/En_passant">En passant</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Promotion_(chess)">Promotion</a></li>
+            </ul>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Algebraic_notation_(chess)">Algebraic notation</a></li>
+            </ul>
+                
+            <div>Controls</div>
+            <ul>
+                <li><a href="index.html">New Game</a></li>
+                <li><a id="TurnLink" onclick="setTurnBoard()">Automatically turn board</a></li>
+                <li><a onclick="submitFEN()">Forsyth–Edwards Notation</a></li>
+                <li><a id="ScoresheetLink" onclick="submitScores()">Scoresheet</a></li><!-- implemented 2021-01-11 -->
             </ul>
         </div>
-        <div id="Main"></div>
+        <a href="../index.html"><div id="Main"></div></a>
         
 
         <script id="pageScriptId">//<![CDATA[
         updatePage();
+        const DEBUG = true && (location.href.indexOf("file:") == 0);
+        
+        const FILENAMES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+        
+        const PIECES_ID1 = ["P", "R", "N", "B", "Q", "K"];
+        const PIECES_NAMES = ["Pawn", "Rook", "Knight", "Bishop", "Queen", "King"];
+        
+        const COLORS = ["W", "B"];
+        
+        const STARTPOSITIONS = "BRa8.BRh8.BNb8.BNg8.BBc8.BBf8.BQd8.BKe8.BPa7.BPb7.BPc7.BPd7.BPe7.BPf7.BPg7.BPh7." +
+                               "WRa1.WRh1.WNb1.WNg1.WBc1.WBf1.WQd1.WKe1.WPa2.WPb2.WPc2.WPd2.WPe2.WPf2.WPg2.WPh2.";
+                               
+        // rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+        
+        const HEADERHEIGHT = 50;
+        const BOARD = 400;
+        const W = BOARD/8;
+        
+        const BORDERW = 25;
+        const OFFSETX = BORDERW;
+        const OFFSETY = HEADERHEIGHT + BORDERW;
+        
+        const TEXTCOLOR = "#ACA39A"; // same as in CSS
+        const LASTMOVEMARK = "blue";
+        const BORDERCOLOR = "green"; // selection and valid moves
+        const LINEWIDTH = 4; // for borders around squares
+        const ALPHA = "0.2"; // lower is more transparent
+        
+        const ANIMTIME = 500; // animation delay (ms)   
+        
+        let DIV = document.getElementById("BoardDiv");
+        DIV.height = BOARD + 2*BORDERW ;
+
+        setSize("Board", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
+        let border = setSize("Border", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
+        
+        let canvas = setSize("Overlay", BOARD, OFFSETX, OFFSETY);
+        let ctx = canvas.getContext("2d");
+
+        const QPOSITIONS = "Pos";
+        const QFROM = "From";
+        const QTO = "To";
+        const QPROMOTION = "Prom";
+        const QCASTLING = "Cast";
+        const QTURN = "Turn";
+        const QMOVES = "Move"; // count moves (white and black)
+        const QREC = "Rec"; // recent moves
+        
+        const RECN = 20; // number of recent moves recorded
+        
+        // init for initQueryFromFEN()
+        let lastMoveColor = "B";
+        let queryCastling = "";
+        let queryFrom = null;
+        let queryTo = null;
+        let queryMoves = 0;
+        let lastMoveEnablesEnPassantToPos = "-";
+
+        let queryPositions = getQueryValue("Positions", ""); // legacy 2021-01-08 query "Positions";        
+        if (queryPositions == "") {
+            queryPositions = getQueryValue(QPOSITIONS, "");
+        }
+        
+        const FENSEP = "_"; // for FEN we use separator "_", not space
+        const SEP = "."; // my sep of pieces (for FEN rank separator is not "/" but ".")
+        if (queryPositions.indexOf(FENSEP) > -1) {
+            queryPositions = initQueryFromFEN(queryPositions);
+        }
+        
+        if (queryPositions == "") {
+            queryPositions = STARTPOSITIONS;
+        }
+        
+        queryCastling = getQueryValue(QCASTLING, queryCastling);
+        queryFrom = getQueryValue(QFROM, queryFrom);
+        queryTo = getQueryValue(QTO, queryTo);
+        queryMoves = parseInt(getQueryValue(QMOVES, queryMoves));
+        
+        let queryRecent = getQueryValue(QREC, "");
+        let queryPromotion = getQueryValue(QPROMOTION, null);
+        
+        let queryTurn = (getQueryValue(QTURN, false) == "true"); // automatically turn board              
+        let TURN = document.getElementById("TurnLink");
+        TURN.innerHTML = TURN.innerHTML + ": " + (queryTurn ? "On" : "Off");
+        
+        let scoresheet = document.getElementById("ScoresheetLink");
+        scoresheet.innerHTML = scoresheet.innerHTML + " of last " + RECN + " moves";
+          
+        if (queryFrom != null) {
+            let i = queryPositions.indexOf(queryFrom);
+            lastMoveColor = queryPositions.substring(i - 2, i - 1);
+        }            
+    
+        let algebraic = "";
+        let lastMovePiece = null;
+        let pieceClicked = null;
+        let validMoves = [];
+        
+        const allowBack = true;        
+        let userTurnedBoard = false; // not persistent, cf. queryTurn        
+
+        let addedPiecesIndex = 0;
+        let moveShown = false;
+        placePieces(queryPositions);
+        setTimeout(function() { showMove(queryFrom, queryTo, false); }, ANIMTIME);
+
+        /* the user switches the automatic turning */
+        function setTurnBoard() {
+            queryTurn = (!queryTurn);
+            reloadQuery();
+        }
+                                  
+        /* the user clicked the border */
+        function userTurnBoard() {
+            let positions = getPositions();
+            
+            userTurnedBoard = (!userTurnedBoard);
+            
+            removeAllPieces();
+            placePieces(positions);
+            
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showCheck();
+            addRect(queryTo, LASTMOVEMARK);
+        }
+                                  
+        /* the user clicked the board overlay */
+        function clickDetected(event) {
+            if (!moveShown) {
+                return;
+            }
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            showCheck();
+            addRect(queryTo, LASTMOVEMARK);
+            
+            // event offset in canvas            
+            let pos = getPositionFromXY(event.offsetX - W/2, event.offsetY - W/2);
+            let target = getPieceAtPosition(pos);
+
+            if ((target != null) && ((pieceClicked == null) || (getColor(target) == getColor(pieceClicked)))) {
+                // pieceClicked was not set yet
+                pieceClicked = target;
+                
+                // check if last moved piece clicked
+                // change piece after Pawn promotion or animate last move
+                if ((pieceClicked == lastMovePiece)) {
+                    pieceClicked == null;
+                    if ((isWhite(lastMovePiece) && (getRank(pos) == 8)) || (isBlack(lastMovePiece) && (getRank(pos) == 1))) {
+                        if (queryPositions.indexOf("P" + queryFrom) > -1) { // Pawn in from position
+                            let i = PIECES_ID1.indexOf(queryPromotion);
+                            i--;
+                            if (i < 0) {
+                                i = PIECES_ID1.length - 1;
+                            }
+                            while ((PIECES_ID1[i] == "K") || (PIECES_ID1[i] == "P")) {
+                                i--;
+                                if (i < 0) {
+                                    i = PIECES_ID1.length - 1;
+                                }
+                            }
+                            // reload with new promotion
+                            newQuery(queryPositions, queryFrom, queryTo, PIECES_ID1[i]);
+                        }
+                    } else {
+                        // repeat animation of last move
+                        removeAllPieces();
+                        placePieces(queryPositions);
+                        
+                        moveShown = false;
+                        setTimeout(function() { showMove(queryFrom, queryTo, false); }, ANIMTIME);
+                    }
+                    return;
+                }
+                if (getColor(target) == lastMoveColor) {
+                    return;
+                }
+                                            
+                // Find valid moves
+                validMoves = getValidMoves([], pieceClicked);
+            
+                // show the valid moves
+                for (let i = 0; i < validMoves.length; i++)  {                
+                    let borderColor;
+                    let move = validMoves[i];
+                    
+                    if (getType(getPieceAtPosition(move)) == "K") {                
+                        validMoves.splice(i, 1); // remove King from validMoves
+                        i = i - 1;
+                        // mark King red, it is not a valid move
+                        markCheck(move);
+                        borderColor = "red";
+                    } else {
+                        ctx.fillStyle = "rgba(0, 255, 0, " + ALPHA + ")"; // light green
+                        ctx.fillRect(getX(move), getY(move), W, W);
+                        borderColor = BORDERCOLOR;
+                    }
+                    
+                    addRect(move, borderColor);
+                }
+                                                                    
+                // mark the clicked piece, render above the valid moves
+                addRect(pos, BORDERCOLOR);
+                    
+            } else if (pieceClicked != null) {
+                // perform the move
+                let moveTo = pos;
+                
+                if (validMoves.indexOf(moveTo) > -1) {
+                    // Promotion
+                    queryPromotion = getType(pieceClicked);
+                    if ((isWhite(pieceClicked) && (getRank(moveTo) == 8)) || (isBlack(pieceClicked) && (getRank(moveTo) == 1))) {
+                        if (queryPromotion == "P") {
+                            queryPromotion = "Q"; // default promotion to Queen, the user can click the piece to change
+                        }
+                    }
+
+                    // clear last move marker
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    
+                    let moveFrom = getPiecePosition(pieceClicked); // before animation                    
+                    let previousPositions = getPositions(); // before animation, positions before this last move
+
+                    if (isWhite(pieceClicked)) {
+                        queryMoves++;
+                    }
+                    // animate move before reload
+                    if (queryTurn) {
+                        showMove(moveFrom, moveTo, true);
+                    }
+                    
+                    newQuery(previousPositions, moveFrom, moveTo, queryPromotion);
+                }                
+                pieceClicked = null;
+            }
+        }
+
+        /* perform the move */
+        function showMove(moveFrom, moveTo, noMark) {
+            let piece = getPieceAtPosition(moveFrom);
+            if (piece != null) {
+                let type = getType(piece);
+                let taken = getPieceAtPosition(moveTo);
+                                              
+                // algebraic notation for move
+                let algFrom = "";
+                if (type == "P") { // Pawn
+                    if (taken != null) {
+                        // Laws of Chess C9 (not need for C11)
+                        algFrom = getFile(moveFrom);
+                    }
+                } else if (type != "K") {
+                    let sameTypePoses = getPiecePositionsByName(getColor(piece) + type);
+                    let sameTargetFromPoses = [];
+                    for (let i = 0; i < sameTypePoses.length; i++) {
+                        let validTargets = getValidMoves([], getPieceAtPosition(sameTypePoses[i]));
+                        if (validTargets.indexOf(moveTo) > -1) {
+                            sameTargetFromPoses.push(sameTypePoses[i]);
+                        }                       
+                    }
+                    if (sameTargetFromPoses.length > 1) {
+                        if (isFileUnique(getFile(moveFrom), sameTargetFromPoses)) {
+                            algFrom = getFile(moveFrom);
+                        } else if (isRankUnique(getRank(moveFrom), sameTargetFromPoses)) {
+                            algFrom = getRank(moveFrom);
+                        } else {
+                            algFrom = moveFrom;
+                        }
+                    }
+                }
+
+                // en passant
+                // the previous opponent move is checked in valid moves
+                // correction 2021-01-10 earlier checked Rank
+                let ep = false; // en passant
+                if ((type == "P") && (taken == null) && (Math.abs(getFileIndex(moveTo) - getFileIndex(moveFrom)) == 1)) {
+                    let r = 4;
+                    if (isWhite(piece)) {
+                        r = 5;
+                    }
+                    algFrom = getFile(moveFrom);
+                    // assuming it is a valid move and we remove a Pawn
+                    taken = getPieceAtPosition(getPositionFromFileIndex(getFileIndex(moveTo), r));
+                    ep = true;
+                }
+                removePiece(taken);
+                
+                setPiecePosition(piece, moveTo);
+                lastMovePiece = piece;
+                lastMoveColor = getColor(piece);
+                                               
+                if (!noMark) {                     
+                    addRect(moveTo, LASTMOVEMARK);
+                }
+                
+                // don't show P for moved Pawn                
+                algebraic = ((type != "P") ? type : "") + algFrom + 
+                    ((taken != null) ? "x" : "") + moveTo;
+                
+                // promotion
+                if ((type == "P") && 
+                    (((getRank(moveTo) == 1) && isBlack(piece)) ||
+                     ((getRank(moveTo) == 8) && isWhite(piece)))) {
+                        let color = getColor(piece);
+                        removePiece(piece);
+                        
+                        let promoted = addPiece(color, queryPromotion, moveTo);
+                        algebraic = algebraic + getType(promoted);
+                        
+                        lastMovePiece = promoted;
+                } else if ((type == "K") && (Math.abs(getFileIndex(moveTo) - getFileIndex(moveFrom)) == 2)) {
+                    // castling of King (2 steps), now move Rook, assuming everything is right
+                    let r = getRank(moveTo);
+                    if (getFile(moveTo) == "c") {
+                        let rook = getPieceAtPosition("a" + r);
+                        setPiecePosition(rook, "d" + r);
+                        algebraic = "0-0-0"; // Queen side
+                    } else if (getFile(moveTo) == "g") {
+                        let rook = getPieceAtPosition("h" + r);
+                        setPiecePosition(rook, "f" + r);
+                        algebraic = "0-0"; // King side
+                    }
+                }
+
+                // En passant, set for FEN
+                if (type == "P") {
+                    let r = getRank(moveTo);
+                    let f = getFile(moveTo);
+                    if (Math.abs(r - getRank(moveFrom)) == 2) {
+                        if (isWhite(piece)) {
+                            lastMoveEnablesEnPassantToPos = f + (r - 1);
+                        } else {
+                            lastMoveEnablesEnPassantToPos = f + (r + 1);
+                        }
+                    }
+                }
+                
+
+                let lastMoveChecks = showCheck();
+
+                algebraic = algebraic + (lastMoveChecks ? "+" : "") + (ep ? " e.p." : "");
+                
+                document.getElementById("MoveSpan").innerHTML = queryMoves + ". " + algebraic + ", ";
+                document.title = queryMoves + "." + lastMoveColor + " " + algebraic + " Mars Voyager on Chess";
+            }
+            moveShown = true;
+        }
+
+
+        /* support functions returning position e.g. "a1" */
+        
+        function getPositionFromFileIndex(fileIndex, rank) {
+            return FILENAMES[fileIndex] + rank;
+        }
+
+        /* in board overlay coordinates */
+        function getPositionFromXY(x, y) {
+            // file 0..7
+            let fileIndex = Math.floor(x/W + 0.5);
+            // rank 1..8
+            let rank = 8 - Math.floor(y/W + 0.5);
+            
+            if (queryTurn && (lastMoveColor == "W")) {
+                fileIndex = 7 - fileIndex;
+                rank = 9 - rank;
+            }            
+            if (userTurnedBoard) {
+                fileIndex = 7 - fileIndex;
+                rank = 9 - rank;
+            }
+            
+            return getPositionFromFileIndex(fileIndex, rank);
+        }
+                                  
+        /* position by name e.g. "WQ" */
+        function getPiecePositionsByName(name) {
+            let pieces = DIV.getElementsByClassName("Piece");
+            let poses = [];
+            for (let i = 0; i < pieces.length; i++) {
+                if (pieces[i].id.substring(0, 2) == name) {
+                    poses.push(getPiecePosition(pieces[i]));
+                }
+            }
+            return poses;
+        }
+                                  
+                                  
+        /* functions with piece parameter, this is the img element */
+        
+        function getPiecePosition(piece) {
+            return getPositionFromXY(parseInt(piece.style.left) - OFFSETX, parseInt(piece.style.top) - OFFSETY);
+        }
+
+        function getType(piece) {
+            let type = "";
+            if (piece != null) {
+                type = piece.id.substring(1, 2);
+            }
+            return type;
+        }
+        
+        function getColor(piece) {
+            let color = "";
+            if (piece != null) {
+                color = piece.id.substring(0, 1);
+            }
+            return color;
+        }
+                                  
+        function isBlack(piece) {
+            return (getColor(piece) == "B");
+        }
+        function isWhite(piece) {
+            return (getColor(piece) == "W");
+        }
+        function getOtherColorOfPiece(piece) {
+            return (isBlack(piece) ? "W" : "B");
+        }
+                                  
+                                  
+        /* functions with position parameter e.g. "a1" */
+                                  
+        function getPieceAtPosition(pos) {
+            let pieces = DIV.getElementsByClassName("Piece");
+            for (let i = 0; i < pieces.length; i++) {
+                if (getPiecePosition(pieces[i]) == pos) {
+                    return pieces[i];
+                }
+            }
+            return null;
+        }
+
+        function getFile(pos) {
+            return pos.substring(0, 1);
+        }
+        function getFileIndex(pos) {
+            return FILENAMES.indexOf(getFile(pos));
+        }
+        function getRank(pos) {
+            return parseInt(pos.substring(1, 2));
+        }
+        function getX(pos) {
+            let f = getFileIndex(pos);
+            if (queryTurn && (lastMoveColor == "W")) {
+                f = 7 - f;
+            }
+            if (userTurnedBoard) {
+                f = 7 - f;
+            }            
+            return W*f;
+        }
+        function getY(pos) {
+            let r = 8 - getRank(pos);
+            if (queryTurn && (lastMoveColor == "W")) {
+                r = 7 - r;
+            }
+            if (userTurnedBoard) {
+                r = 7 - r;
+            }            
+            return W*r;
+        }
+                                   
+                                   
+        /* Valid moves support */
+                                   
+        function getValidMoves(valid, piece) {
+            let threated = getPositionsThreatenedByColor(getOtherColorOfPiece(piece)); // uses getValidMovesSupport
+            return getValidMovesSupport(valid, piece, threated, false);
+        }
+                                  
+        /* returns valid moves including opponent King */
+        // onlyThreat = true returns threat by Pawn, not valid moves.
+        // also includes guarded postitions, and extended threat beyond opponent King
+        function getValidMovesSupport(valid, piece, threated, onlyThreat) {
+            let color = getColor(piece);
+            let type = getType(piece);
+            let pos = getPiecePosition(piece);
+            
+            let file = getFileIndex(pos); // 0..7
+            let rank = getRank(pos); // 1..8
+                                                    
+            if (type == "P") { // Pawn
+                let dr = 1;
+                let twoMoveAtRank = 2;
+                let endRank = 8;
+                if (isBlack(piece)) {
+                    dr = -1;
+                    twoMoveAtRank = 7;
+                    endRank = 1;
+                }
+                if (rank != endRank) {
+                    if (!onlyThreat) {
+                        // onlyThreat = false, add straight moves
+                        let move = getPositionFromFileIndex(file, rank + dr);
+                        if (getPieceAtPosition(move) == null) {
+                            valid.push(move);
+                            if (rank == twoMoveAtRank) {
+                                move = getPositionFromFileIndex(file, rank + 2*dr);
+                                if (getPieceAtPosition(move) == null) {
+                                    valid.push(move);
+                                }
+                            }
+                        }
+                    }
+                    for (let f = -1; f <= 1; f = f + 2)  {
+                        move = getPositionFromFileIndex(file + f, rank + dr);
+                        if (isValidPosition(move)) {
+                            let p = getPieceAtPosition(move);
+                            if ((p != null) || onlyThreat) {
+                                if (getColor(p) != color) {
+                                    valid.push(move);
+                                }
+                            }
+                        }
+                    }
+                }
+                // en passant
+                if ((getType(lastMovePiece) == "P") && (!onlyThreat)) {
+                    if (Math.abs(getRank(queryTo) - getRank(queryFrom)) == 2) { // two step
+                        if (getRank(queryTo) == rank) {
+                            if (Math.abs(getFileIndex(pos) - getFileIndex(queryTo)) == 1) {
+                                let r = 3;
+                                if (isWhite(piece)) {
+                                    r = 6;
+                                }
+                                valid.push(getPositionFromFileIndex(getFileIndex(queryTo), r));
+                            }
+                        }
+                    }
+                }
+                // en passant from FEN
+                if (isValidPosition(lastMoveEnablesEnPassantToPos) && (!onlyThreat)) {
+                    if (Math.abs(getFileIndex(lastMoveEnablesEnPassantToPos) - file) == 1) {
+                        if (((color == "W") && (rank == 5)) || ((color == "B") && (rank == 4))) {
+                            valid.push(lastMoveEnablesEnPassantToPos);
+                        }
+                    }
+                }
+            } else if (type == "K") { // King                                                                                                                       
+                for (let f = -1; f <= 1; f++)  {
+                    for (let r = -1; r <= 1; r++)  {
+                        let move = getPositionFromFileIndex(file + f, rank + r);
+                        if (isValidPosition(move) && (move != pos)) {
+                            let p = getPieceAtPosition(move);
+                            if ((getColor(p) != color) && (getType(p) != "K")) {
+                                if (threated.indexOf(move) < 0) {
+                                     valid.push(move);
+                                }
+                            }
+                        }
+                    }
+                }
+            
+                // castling                  
+                let r = (isWhite(piece) ? 1 : 8);
+            
+                if ((pos == ("e" + r)) && (queryCastling.indexOf("e" + r) < 0)) {
+                    let rookPos = "a" + r;
+                    let cornerPiece = getPieceAtPosition(rookPos);
+                                 // check earlier moves
+                    if (queryCastling.indexOf(rookPos) < 0) {
+                         if ((getType(cornerPiece) == "R") && (getColor(cornerPiece) == color)) {
+                             let free = true;
+                             for (let f = 1; f <= 3; f++)  {
+                                 if (getPieceAtPosition(getPositionFromFileIndex(f, r)) != null) {
+                                     free = false;
+                                 }
+                             }
+                             if (free) {
+                                let newKingPos = "c" + r;
+                                // One may not castle out of, through, or into check.  
+                                if ((threated.indexOf(pos) < 0) &&
+                                    (threated.indexOf(newKingPos) < 0) &&
+                                    (threated.indexOf("d" + r) < 0)) {
+                                    valid.push(newKingPos);
+                                }
+                            }
+                        }
+                    }
+                    rookPos = "h" + r;
+                    cornerPiece = getPieceAtPosition(rookPos);
+                    // check earlier moves
+                    if (queryCastling.indexOf(rookPos) < 0) {
+                        if ((getType(cornerPiece) == "R") && (getColor(cornerPiece) == color)) {
+                            let free = true;
+                            for (let f = 5; f <= 6; f++)  {
+                                if (getPieceAtPosition(getPositionFromFileIndex(f, r)) != null) {
+                                    free = false;
+                                }
+                            }
+                            if (free) {
+                                let newKingPos = "g" + r;
+                                // One may not castle out of, through, or into check.  
+                                if ((threated.indexOf(pos) < 0) &&
+                                    (threated.indexOf(newKingPos) < 0) &&
+                                    (threated.indexOf("f" + r) < 0)) {
+                                    valid.push(newKingPos);
+                                }
+                            }
+                        }
+                    }
+                }
+                
+            } else if (type == "N") { // Knight
+                for (let f = -1; f <= 1; f = f + 2)  {
+                    for (let r = -2; r <= 2; r = r + 4)  {
+                        checkMoveSimple(valid, file + f, rank + r, color, onlyThreat);
+                    }
+                }
+                for (let f = -2; f <= 2; f = f + 4)  {
+                    for (let r = -1; r <= 1; r = r + 2)  {
+                        checkMoveSimple(valid, file + f, rank + r, color, onlyThreat);
+                    }
+                }
+            } else if ((type == "R") || (type == "Q")) { // Rook or Queen
+                for (let f = file + 1; f < 8; f++)  {
+                    f = checkMove(valid, f, rank, color, f, 10, onlyThreat);
+                }
+                for (let f = file - 1; f > -1; f--)  {
+                    f = checkMove(valid, f, rank, color, f, -1, onlyThreat);
+                }
+                for (let r = rank + 1; r < 9; r++)  {
+                    r = checkMove(valid, file, r, color, r, 10, onlyThreat);
+                }
+                for (let r = rank - 1; r > 0; r--)  {
+                    r = checkMove(valid, file, r, color, r, -1, onlyThreat);
+                }
+            }
+             
+            if ((type == "B") || (type == "Q")) { // Bishop or Queen
+                for (let j = -1; j <= 1; j = j + 2)  {
+                    for (let i = 1; i < 9; i++)  {
+                        i = checkMove(valid, file + i, rank + j*i, color, i, 10, onlyThreat);
+                    }
+                }
+                for (let j = -1; j <= 1; j = j + 2)  {
+                    for (let i = -1; i > -9; i--)  {
+                        i = checkMove(valid, file + i, rank + j*i, color, i, -10, onlyThreat);
+                    }
+                }
+            }
+            return valid;
+        }
+        
+        function isValidPosition(pos) {
+            if (pos.length == 2) {
+                if (getFileIndex(pos) > -1) {
+                    let rank = getRank(pos);
+                    if ((rank > 0) && (rank < 9)) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        // For movement of Rook, Bishop and Queen
+        // onlyThreat = true, includes guarding and extended threat
+        function checkMove(valid, fileIndex, rank, color, i, finali, onlyThreat) {
+            let move = getPositionFromFileIndex(fileIndex, rank);
+            if (isValidPosition(move)) {
+                let piece = getPieceAtPosition(move);
+                if (piece == null) {
+                    valid.push(move);
+                } else {
+                    // includes guarding if onlyTreat = true
+                    if ((getColor(piece) != color) || onlyThreat) {
+                        valid.push(move);
+                    }
+                    // 2021-01-11 corrected logic
+                    if (onlyThreat && (getType(piece) == "K") && (getColor(piece) != color)) {
+                        // extended threat: don't finalize if piece is opponent King                       
+                    } else {
+                        i = finali;                        
+                    }
+                }
+            }
+            return i;
+        }
+        // For movement of Knight
+        // onlyThreat = true, includes guarding
+        function checkMoveSimple(valid, fileIndex, rank, color, onlyThreat) {
+            let move = getPositionFromFileIndex(fileIndex, rank);
+            if (isValidPosition(move)) {
+                let piece = getPieceAtPosition(move);
+                // includes guarding if onlyTreat = true
+                if ((getColor(piece) != color) || onlyThreat) {
+                    valid.push(move);
+                }
+            }
+        }
+                                  
+        function isPositionThreatenedByColor(pos, color) {
+            let pieces = DIV.getElementsByClassName("Piece");
+            for (let i = 0; i < pieces.length; i++) {
+                if (getColor(pieces[i]) == color) {
+                    let valid = getValidMovesSupport([], pieces[i], [], true); // includes King
+                    if (valid.indexOf(pos) > -1) {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+        function getPositionsThreatenedByColor(color) {
+            let pieces = DIV.getElementsByClassName("Piece");
+            let threated = [];
+            for (let i = 0; i < pieces.length; i++) {
+                if (getColor(pieces[i]) == color) {
+                    threated = getValidMovesSupport(threated, pieces[i], [], true); // includes King
+                }
+            }
+            return threated;
+        }
+        
+        function showCheck() {
+            let inCheckByLastMoveColor = false;
+            
+            for (let i = 0; i < COLORS.length; i++) {
+                let c = COLORS[i];
+                let op = ((c == "W") ? "B" : "W");
+                let kingPositions = getPiecePositionsByName(c + "K");
+                
+                if (isPositionThreatenedByColor(kingPositions[0], op)) {
+                    markCheck(kingPositions[0]);
+                    if (lastMoveColor == op) {
+                        inCheckByLastMoveColor = true;
+                    }
+                }
+            }
+            
+            if (DEBUG && false) {
+                let threated = getPositionsThreatenedByColor(getColor(lastMovePiece));
+                for (let i = 0; i < threated.length; i++) {
+                    markCheck(threated[i]);
+                }    
+            }
+            return inCheckByLastMoveColor;
+        }
+                                  
+                                  
+        /* creation, placement and removal of pieces */
+            
+        function addPiece(color, type, pos) {
+            let img = document.createElement("IMG");
+            img.className = "Piece";
+
+            img.id = color + type + "_" + addedPiecesIndex;
+            addedPiecesIndex++;
+            
+            img.src = "images/" + (color == "W" ? "White" : "Black") + 
+                PIECES_NAMES[PIECES_ID1.indexOf(type)] + ".png";
+            
+            setPiecePosition(img, pos);
+            
+            DIV.appendChild(img);
+            
+            return img;
+        }
+        function removePiece(piece) {
+            if (piece != null) {
+                piece.parentNode.removeChild(piece);
+            }
+        }
+        function removeAllPieces() {
+            let pieces = DIV.getElementsByClassName("Piece");
+            while (pieces.length > 0) {
+                removePiece(pieces[0]);
+                pieces = DIV.getElementsByClassName("Piece");
+            }            
+        }
+        
+        function setPiecePosition(element, pos) {
+            element.style.left = (getX(pos) + OFFSETX) + "px";
+            element.style.top  = (getY(pos) + OFFSETY) + "px";
+        }
+                                  
+        function placePieces(poses) {
+            let positions = poses.split(SEP);
+            for (let i = 0; i < positions.length; i++) {
+                let p = positions[i];
+                if (p.length == 4) { // . at end
+                    let color = p.substring(0, 1);
+                    let type = p.substring(1, 2);
+                    let pos = p.substring(2, 4);
+            
+                    addPiece(color, type, pos);
+                }
+            }
+            markBorder();
+        }
+                                  
+        /* return a string with all piece positions including color and type, e.g. "WQd1." */
+        function getPositions() {
+            let pieces = DIV.getElementsByClassName("Piece");
+            let pos = "";
+            for (let i = 0; i < pieces.length; i++) {
+                pos = pos + pieces[i].id.substring(0, 2) + getPiecePosition(pieces[i]) + SEP;
+            }
+            return pos;
+        }
+
+
+        /* Algebraic Notation support */
+
+        function isFileUnique(file, poses) {
+            let n = 0;
+            for (let i = 0; i < poses.length; i++) {
+                if (getFile(poses[i]) == file) {
+                    n++;
+                }
+            }
+            return (n == 1);
+        }
+        function isRankUnique(rank, poses) {
+            let n = 0;
+            for (let i = 0; i < poses.length; i++) {
+                if (getRank(poses[i]) == rank) {
+                    n++;
+                }
+            }
+            return (n == 1);
+        }
+                                          
+                                  
+        /* Graphics support */
+                                  
+        function markBorder() {
+            let c = border.getContext("2d");
+            c.clearRect(0, 0, border.width, border.height);
+
+            let fontSize = BORDERW - 5;
+            let dy = fontSize/2;
+
+            c.fillStyle = TEXTCOLOR;
+            c.font = fontSize + "px Arial";
+            c.textAlign = "center";
+
+            for (let i = 0; i < 8; i++) {
+                let z = BORDERW + W*i + W/2;
+                let j = i;
+                if (queryTurn && (lastMoveColor == "W")) {
+                    j = 7 - i;
+                }
+                if (userTurnedBoard) {
+                    j = 7 - j;
+                }
+                c.fillText(FILENAMES[j], z, BORDERW - dy);
+                c.fillText(FILENAMES[j], z, BORDERW*2 + BOARD - dy/2);
+                c.fillText((8 - j), BORDERW/2, z + dy);
+                c.fillText((8 - j), BORDERW + BOARD + BORDERW/2, z + dy);
+            }
+        }        
+        function addRect(pos, color) {
+            if (pos != null) {
+                ctx.strokeStyle = color;
+                ctx.lineWidth = LINEWIDTH;
+            
+                ctx.beginPath();
+                ctx.rect(getX(pos), getY(pos), W, W);
+                ctx.closePath();
+                ctx.stroke();
+            }       
+        }
+        function markCheck(pos) {
+            if (pos != null) {
+                ctx.fillStyle = "rgba(255, 0, 0, " + ALPHA + ")";
+                ctx.fillRect(getX(pos), getY(pos), W, W);
+            }       
+        }
+        function setSize(name, wh, x, y) {
+            let e = document.getElementById(name);
+            e.width = wh;
+            e.height = wh;
+            e.style.left = x + "px";
+            e.style.top = y + "px";
+            return e;
+        }
+                                  
+                                  
+        /* Queries support */
+        
+        function getQueryValue(param, defaultValue) {
+            // new URLSearchParams, no support in IE
+            let query = window.location.search; // "?param=value&param2=value2"
+            let i = query.indexOf(param + "=");
+            let value;
+            if (i > -1) {
+                let e = query.indexOf("&", i);
+                if (e > -1) {
+                    value = query.substring(i + param.length + 1, e);
+                } else {
+                    value = query.substring(i + param.length + 1);
+                }
+            } else {
+                value = defaultValue;
+            }
+            return value;
+        }
+        function reloadQuery() {
+            newQuery(queryPositions, queryFrom, queryTo, queryPromotion);
+        }
+        function newQuery(positions, moveFrom, moveTo, promotion) {
+            let href = window.location.href;
+            
+            if (queryCastling.indexOf(moveFrom) < 0) {
+                if ((moveFrom == "a1") || (moveFrom == "h1") || (moveFrom == "e1") ||
+                    (moveFrom == "a8") || (moveFrom == "h8") || (moveFrom == "e8")) {
+                    queryCastling = queryCastling + moveFrom;
+                }
+            }
+            // QPOSITIONS is before move
+            href = href.substring(0, href.indexOf("?")) + "?" + 
+                QPOSITIONS + "=" + positions + "&" + 
+                QFROM + "=" + moveFrom + "&" + 
+                QTO + "=" + moveTo + "&" + 
+                QPROMOTION + "=" + promotion + "&" +
+                QCASTLING + "=" + queryCastling + "&" +
+                QTURN + "=" + queryTurn + "&" +
+                QMOVES + "=" + queryMoves + "&" +
+                QREC + "=" + shortAlgebraic();
+        
+            if (DEBUG || allowBack) {
+                window.location.href = href;
+            } else {
+                // replace prohibits using Back
+                // the user can still reload shared link
+                window.location.replace(href);
+            }
+        }
+        function shortAlgebraic() {
+            // remove spaces and periods (.)
+            let rec = queryRecent + ((algebraic.length > 0) ? algebraic.replace(/\./g, "").replace(/\s/g, "") + (lastMoveColor == "B" ? "," : SEP) : "");
+            if ((lastMoveColor == "W") && (rec.split(",").length > RECN)) {
+                rec = rec.substring(rec.indexOf(",") + 1);
+            }
+            return rec;
+        }
+        
+        function submitScores() {
+            window.location.href = "scoresheet.html?" + QMOVES + "=" + queryMoves + "&" + QREC + "=" + shortAlgebraic();
+        }
+        
+        // Forsyth–Edwards Notation
+        // https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+        // rnbqkbnr.pppppppp.8.8.8.8.PPPPPPPP.RNBQKBNR_w_KQkq_-_0_1
+        // rnbqkbnr.pp1ppppp.8.2p5.4P3.5N2.PPPP1PPP.RNBQKB1R_b_KQkq_-_1_2
+        function submitFEN() {
+            let fen = "";
+            for (let r = 8; r > 0; r--) {
+                let empty = 0;
+                for (let f = 0; f < 8; f++) {
+                    let piece = getPieceAtPosition(FILENAMES[f] + r);
+                    if (piece == null) {
+                        empty++;
+                    } else {
+                        if (empty > 0) {
+                            fen = fen + empty;                          
+                        }
+                        if (getColor(piece) == "W") {
+                            fen = fen + getType(piece);                          
+                        } else {
+                            fen = fen + getType(piece).toLowerCase();                          
+                        }
+                        empty = 0; 
+                    }
+                }
+                if (empty > 0) {
+                    fen = fen + empty;                          
+                }
+                if (r != 1) {
+                    fen = fen + SEP;
+                }
+            }
+            // FEN next move color, lower case w or b
+            fen = fen + FENSEP + ((lastMoveColor == "W") ? "b": "w") + FENSEP;
+            
+            // "K" (White can castle kingside), "Q" (White can castle queenside), "k" (Black can castle kingside), and/or "q" (Black can castle queenside).
+            let castling = false;
+            if (queryCastling.indexOf("e1") < 0) {
+                if (queryCastling.indexOf("a1") < 0) {
+                    fen = fen + "Q";
+                    castling = true;
+                }
+                if (queryCastling.indexOf("h1") < 0) {
+                    fen = fen + "K";
+                    castling = true;
+                }
+            }
+            if (queryCastling.indexOf("e8") < 0) {
+                if (queryCastling.indexOf("a8") < 0) {
+                    fen = fen + "q";
+                    castling = true;
+                }
+                if (queryCastling.indexOf("h8") < 0) {
+                    fen = fen + "k";
+                    castling = true;
+                }
+            }
+            if (!castling) {
+                fen = fen + "-";
+            }
+            
+            fen = fen + FENSEP + lastMoveEnablesEnPassantToPos;
+
+            // TODO fifty-move rule, https://en.wikipedia.org/wiki/Fifty-move_rule
+            fen = fen + FENSEP + "0";
+
+            fen = fen + FENSEP + queryMoves;
+
+            window.location.href = "controls.html?Pos=" + fen;
+        }
+        
+        function initQueryFromFEN(fen) {
+            let fens = fen.split(FENSEP); // "_"
+            let positions = "";
+            let rank = 8;
+            let fenPoses = fens[0];
+            if (fenPoses != undefined) {
+                let fileIndex = 0;
+                for (let i = 0; i < fenPoses.length; i++) {
+                    let c = fenPoses.charAt(i); // a string
+                    if (!isNaN(c)) {
+                        fileIndex = fileIndex + parseInt(c);
+                    } else if (c == SEP) { // "."
+                        rank = rank - 1;
+                        fileIndex = 0;
+                    } else {
+                        let u = c.toUpperCase();
+                        positions = positions + ((c == u) ? "W" : "B") + u + FILENAMES[fileIndex] + rank + SEP;
+                        fileIndex++;
+                    }
+                }
+            }
+            
+            // FEN next move color, lower case w or b
+            lastMoveColor = ((fens[1] == "w") ? "B" : "W");
+            
+            // "K" (White can castle kingside), "Q" (White can castle queenside), "k" (Black can castle kingside), and/or "q" (Black can castle queenside).
+            let castling = fens[2];
+            if (castling == "-") {
+                queryCastling = "a1e1h1a8e8h8";
+            } else if (castling != undefined) {
+                queryCastling = "";
+                let w = 0;
+                if (castling.indexOf("K") < 0) {
+                    queryCastling = queryCastling + "h1";
+                    w++;
+                }
+                if (castling.indexOf("Q") < 0) {
+                    queryCastling = queryCastling + "a1";
+                    w++;
+                }
+                if (w == 2) {
+                    queryCastling = queryCastling + "e1";                    
+                }
+                let b = 0;
+                if (castling.indexOf("k") < 0) {
+                    queryCastling = queryCastling + "a8";
+                    b++;
+                }
+                if (castling.indexOf("q") < 0) {
+                    queryCastling = queryCastling + "a8";
+                    b++;
+                }
+                if (b == 2) {
+                    queryCastling = queryCastling + "e8";                    
+                }
+            }
+            
+            lastMoveEnablesEnPassantToPos = fens[3];
+                        
+            // TODO fifty-move rule, https://en.wikipedia.org/wiki/Fifty-move_rule
+            let halfMoves = fens[4];
+            
+            queryMoves = fens[5];
+            
+            return positions;
+        }
+        /*
+        Sparse board
+        ?Pos=BRa8.BRf1.BBc2.BBh2.BKe6.BPa7.BPb6.BPf3.BPg4.BPh6.WRa1.WRh1.WNb1.WNf4.WKe3.WPa5.WPb5.WPg2.WPh5.&From=g4&To=g3&Prom=P&Cast=e8e1h8&Turn=true
+        
+        Rec issue
+        ?Rec=d4.d5,e4.e5,f4.c5,Qh5.Qh5.Qh5.Qh4+,Bc4.Nf6+,Nf3.Bh3+,Be3.Bd6+,Nc3.Na6+,f5.Qg5,0-0-0.0-0-0,Bb5.c4,Nxd5.Nxd5.
+        */
+        
         //]]></script>
     </body>
 </html>
