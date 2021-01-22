@@ -109,7 +109,7 @@
             </ul>
         </div>
         
-        <div id="Visitors">Visitors: </div>
+        <div id="Visitors">Visitors: 2</div>
                 
         <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
 
@@ -1267,6 +1267,8 @@
             let href = window.location.href;
             href = href.substring(0, href.indexOf("?")); // does not include "?" if available
             
+            alert ("new q " + href);
+            
             // QPOSITIONS is before move
             href = href + QPOSITIONS + "=" + m_queryFEN;
             href = href + QFROM + "=" + m_queryFrom;
@@ -1285,6 +1287,8 @@
                 href = href + QREC + "=" + m_queryRecent;
             }
 
+            alert("here " + href);
+            
             if (DEBUG || ALLOWBACK) {
                 window.location.href = href;
             } else {
