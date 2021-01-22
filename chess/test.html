@@ -42,6 +42,8 @@
             img.Piece {
                 z-index: 10;
                 position: absolute;
+                width: 44px;
+                height: 44px;
             }
             canvas#Border {
                 z-index: 20;
@@ -123,7 +125,7 @@
             </ul>
         </div>
         
-        <div id="Visitors">Visitors: </div>
+        <div id="Visitors">Visitors: 2</div>
                 
         <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
 
@@ -132,6 +134,7 @@
         const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
         const DEBUG = (true && LOCALEXECUTION);
 
+        /*
         if (!LOCALEXECUTION) {
             // size 60, visitors, started 2021-01-19
             let visitors = "<a href=\"https://www.freecounterstat.com\" title=\"web counter\">" +
@@ -141,8 +144,10 @@
             let e = document.getElementById("Visitors");
             e.innerHTML = e.innerHTML + visitors;
         }
+        */
         
         const share = document.getElementById("Share");
+        /*
         if (navigator.share) {
             // https://css-tricks.com/how-to-use-the-web-share-api/      
             // iOS Safari, desktop Safari
@@ -161,6 +166,7 @@
                 share.remove();
             }
         }
+        */
         
         const ORIGINALTITLE = document.title;
         
@@ -178,7 +184,7 @@
         // Graphics, element sizes
         
         const HEADERHEIGHT = 50;
-        const BOARD = 400;
+        const BOARD = 350;
         const W = BOARD/8;
         
         const BORDERW = 25;
@@ -1275,8 +1281,7 @@
         //  m_querySloppy
         //  m_queryRecent  
         function newQuery() {
-            let href = window.location.href;
-            href = href.substring(0, href.indexOf("?")); // does not include "?" if available
+            let href = "index.html"
             
             // QPOSITIONS is before move
             href = href + QPOSITIONS + "=" + m_queryFEN;
@@ -1295,7 +1300,7 @@
             if (m_queryRecent != "") {
                 href = href + QREC + "=" + m_queryRecent;
             }
-
+            
             if (DEBUG || ALLOWBACK) {
                 window.location.href = href;
             } else {
