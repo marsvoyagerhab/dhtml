@@ -1,26 +1,12 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-
-<!-- Mars Voyager, 2021-01-08/2021-01-21 -->
-
-<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<!-- Mars Voyager, 2021-01-08 -->
+<html>
     <head>
         <meta charset="UTF-8"/> <!-- HTML5 -->
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
         <title>Mars Voyager on Chess</title>
-
-        <meta name="author" content="Mars Voyager"/>
-        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
-
-        <!-- Open Graph: LinkedIn, Facebook -->
-        <meta name="title" property="og:title" content="Mars Voyager on Chess"/>
-        <!-- min 200 x 200 for Facebook -->
-        <meta name="image" property="og:image" content="images/MVChess200x200.png"/>
-        <meta name="description" property="og:description" content="Share Your Chess Move"/>
-        <meta property="og:image:alt" content="Mars Voyager on Chess"/>
-        <meta property="og:type" content="Game"/>
 
         <link rel="preconnect" href="https://fonts.gstatic.com"/>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
@@ -132,6 +118,7 @@
         const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
         const DEBUG = (true && LOCALEXECUTION);
 
+        /*
         if (!LOCALEXECUTION) {
             // size 60, visitors, started 2021-01-19
             let visitors = "<a href=\"https://www.freecounterstat.com\" title=\"web counter\">" +
@@ -141,8 +128,10 @@
             let e = document.getElementById("Visitors");
             e.innerHTML = e.innerHTML + visitors;
         }
+        */
         
         const share = document.getElementById("Share");
+        /*
         if (navigator.share) {
             // https://css-tricks.com/how-to-use-the-web-share-api/      
             // iOS Safari, desktop Safari
@@ -161,6 +150,7 @@
                 share.remove();
             }
         }
+        */
         
         const ORIGINALTITLE = document.title;
         
