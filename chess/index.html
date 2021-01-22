@@ -34,23 +34,29 @@
                  width: 450px;
                  max-width: 450px;
             }
+            img#Background {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
             img#Board {
+                z-index: 10;
                 position: absolute;
                 left: 0px;
                 top: 0px;
             }
             img.Piece {
-                z-index: 10;
+                z-index: 20;
                 position: absolute;
             }
             canvas#Border {
-                z-index: 20;
+                z-index: 30;
                 position: absolute;
                 left: 0px;
                 top: 0px;
             }
             canvas#Overlay {
-                z-index: 30;
+                z-index: 40;
                 position: absolute;
                 left: 0px;
                 top: 0px;
@@ -58,6 +64,11 @@
             input, a.share {
                 border: solid 2px #4875B4;
                 padding: 3px 6px;
+            }
+            input {
+                margin: 6px 15px;
+            }
+            a.share {
                 margin: 0px 4px;
                 text-decoration: none;
             }
@@ -73,12 +84,14 @@
         <div id="BoardDiv" style="min-height:470px;">
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
             <canvas id="Border"  onmousedown="userTurnBoard()"></canvas>
-        
+            
+            <img id="Background" src="images/Background_450x450.png"/>        
             <img id="Board" src="images/Board.png"/>
         </div>      
         
         <div style="padding:15px 0px;">
-            <div id="ShareLinks">Share move: <input type="button" id="Share" value="Share"/></div>
+            <div id="ShareLinks">Share your move: </div>
+            <input type="button" id="Share" value="Share"/>
         </div>
 
         <div id="Instructions">
@@ -197,6 +210,7 @@
         const DIV = document.getElementById("BoardDiv");
         DIV.height = BOARD + 2*BORDERW;
 
+        setSize("Background", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         setSize("Board", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         const BORDER = setSize("Border", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         
