@@ -1,12 +1,26 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<!-- Mars Voyager, 2021-01-08 -->
-<html>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2021-01-08/2021-01-21 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
     <head>
         <meta charset="UTF-8"/> <!-- HTML5 -->
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
         <title>Mars Voyager on Chess</title>
+
+        <meta name="author" content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title" property="og:title" content="Mars Voyager on Chess"/>
+        <!-- min 200 x 200 for Facebook -->
+        <meta name="image" property="og:image" content="images/MVChess200x200.png"/>
+        <meta name="description" property="og:description" content="Share Your Chess Move"/>
+        <meta property="og:image:alt" content="Mars Voyager on Chess"/>
+        <meta property="og:type" content="Game"/>
 
         <link rel="preconnect" href="https://fonts.gstatic.com"/>
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
@@ -181,7 +195,8 @@
         const LINEWIDTH = 4; // for borders around squares
         const ALPHA = "0.25"; // lower is more transparent
         
-        const ANIMTIME = 500; // animation delay (ms)   
+        const ANIMTIME = 500; // animation delay (ms)
+        const ALLOWBACK = true;
 
         const DIV = document.getElementById("BoardDiv");
         DIV.height = BOARD + 2*BORDERW;
@@ -1264,10 +1279,7 @@
         //  m_querySloppy
         //  m_queryRecent  
         function newQuery() {
-            let href = window.location.href;
-            href = href.substring(0, href.indexOf("?")); // does not include "?" if available
-            
-            alert ("new q " + href);
+            let href = "index.html"
             
             // QPOSITIONS is before move
             href = href + QPOSITIONS + "=" + m_queryFEN;
@@ -1286,8 +1298,6 @@
             if (m_queryRecent != "") {
                 href = href + QREC + "=" + m_queryRecent;
             }
-
-            alert("here " + href);
             
             if (DEBUG || ALLOWBACK) {
                 window.location.href = href;
@@ -1390,7 +1400,7 @@
         // https://www.linkedin.com/post-inspector/
         function updateShareLinks() {
             let title = encodeURI(document.title);
-            let url = encodeURIComponent(window.location.search);
+            let url = encodeURIComponent(window.location.href);
             
             if (LOCALEXECUTION) {
                 url = encodeURIComponent("https://marsvoyagerhab.github.io/dhtml/chess/index.html") + url;
