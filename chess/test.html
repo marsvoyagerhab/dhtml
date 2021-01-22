@@ -123,7 +123,7 @@
             </ul>
         </div>
         
-        <div id="Visitors">Visitors: 2</div>
+        <div id="Visitors">Visitors: </div>
                 
         <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
 
@@ -132,7 +132,6 @@
         const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
         const DEBUG = (true && LOCALEXECUTION);
 
-        /*
         if (!LOCALEXECUTION) {
             // size 60, visitors, started 2021-01-19
             let visitors = "<a href=\"https://www.freecounterstat.com\" title=\"web counter\">" +
@@ -142,10 +141,8 @@
             let e = document.getElementById("Visitors");
             e.innerHTML = e.innerHTML + visitors;
         }
-        */
         
         const share = document.getElementById("Share");
-        /*
         if (navigator.share) {
             // https://css-tricks.com/how-to-use-the-web-share-api/      
             // iOS Safari, desktop Safari
@@ -164,7 +161,6 @@
                 share.remove();
             }
         }
-        */
         
         const ORIGINALTITLE = document.title;
         
@@ -1279,7 +1275,8 @@
         //  m_querySloppy
         //  m_queryRecent  
         function newQuery() {
-            let href = "index.html"
+            let href = window.location.href;
+            href = href.substring(0, href.indexOf("?")); // does not include "?" if available
             
             // QPOSITIONS is before move
             href = href + QPOSITIONS + "=" + m_queryFEN;
@@ -1298,7 +1295,7 @@
             if (m_queryRecent != "") {
                 href = href + QREC + "=" + m_queryRecent;
             }
-            
+
             if (DEBUG || ALLOWBACK) {
                 window.location.href = href;
             } else {
@@ -1403,7 +1400,7 @@
             let url = encodeURIComponent(window.location.href);
             
             if (LOCALEXECUTION) {
-                url = encodeURIComponent("https://marsvoyagerhab.github.io/dhtml/chess/index.html") + url;
+                url = encodeURIComponent("https://marsvoyagerhab.github.io/dhtml/chess/index.html") + window.location.search;
             }
 
             let links = [];
