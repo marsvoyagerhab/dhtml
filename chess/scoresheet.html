@@ -1,25 +1,28 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<!-- Mars Voyager, 2021-01-08 -->
-<html>
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- Mars Voyager, 2021-01-08/2021-01-16 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
     <head>
         <meta charset="UTF-8"/> <!-- HTML5 -->
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
-
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
         <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
 
         <title>Mars Voyager on Chess</title>
 
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
+
         <script type="text/javascript" src="../marsvoyager.js"></script>
-
-        <link rel="preconnect" href="https://fonts.gstatic.com">
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"> 
-
         <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
         <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
   
         <style>
+        th, td {
+            padding: 0px 7px;
+            text-align: left;
+        }
         </style>
     </head>
     <body>
@@ -36,59 +39,41 @@
                 <li><a href="index.html">To a new Chess board</a></li>
             </ul>
         </div>
-        <a href="../index.html"><div id="Main"></div></a>
-        
+
+        <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>        
 
         <script id="pageScriptId">//<![CDATA[
         updatePage();        
         
-        const SHEET = document.getElementById("Scoresheet")
+        const SEP = "."; // my sep of pieces (for FEN rank separator is not "/" but ".")
+        const RECSEP = "_"; // is used together with SEP        
         
-        SHEET.value = createRows(getQueryValue("Move", 0), getQueryValue("Rec", ""));          
+        const SHEET = document.getElementById("Scoresheet");        
+        createRows(getQueryValue("?Move", 0), getQueryValue("&Rec", ""));          
                 
         
-        function createRows(number, value) {
-            let moves = value.split(",");
-            let n = 2;
-            if (moves[moves.length - 1].split(".")[1] == "") {
-                n = 1;
-            }
+        function createRows(number, values) {
+            // restore "*" and "-" from query to "#" and "+" 
+            values = values.replace(/\u002a/g, "#").replace(/\u002d/g, "+");
+            let moves = values.split(RECSEP); // has RECSEP at end
             for (let i = 0; i < moves.length; i++) {
-                if (moves[i] != "") { // the final ","
+                if (moves[i] != "") { // the ending RECSEP
                     let tr = document.createElement("TR");
                     SHEET.appendChild(tr);
                 
                     let td = document.createElement("TD");
                     tr.appendChild(td);
 
-                    let cols = moves[i].split(".");
-                    td.innerHTML = (number - moves.length + i + n) + ". ";
+                    let cols = moves[i].split(SEP);
+                    td.innerHTML = (number - moves.length + i + 1) + ". ";
                 
                     for (let c = 0; c < cols.length; c++) {
                         td = document.createElement("TD");
                         tr.appendChild(td);
-                        td.innerHTML = cols[c];
+                        td.innerHTML = cols[c].replace(/ep/, " e.p.");
                     }        
                 }        
             }
-        }
-        
-        function getQueryValue(param, defaultValue) {
-            // new URLSearchParams, no support in IE
-            let query = window.location.search; // "?param=value&param2=value2"
-            let i = query.indexOf(param + "=");
-            let value;
-            if (i > -1) {
-                let e = query.indexOf("&", i);
-                if (e > -1) {
-                    value = query.substring(i + param.length + 1, e);
-                } else {
-                    value = query.substring(i + param.length + 1);
-                }
-            } else {
-                value = defaultValue;
-            }
-            return value;
         }
         
         //]]></script>

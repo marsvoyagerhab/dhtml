@@ -1,0 +1,256 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<!-- Mars Voyager, 2021-01-08/2021-01-16 -->
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+        <title>Mars Voyager on Chess</title>
+
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
+    </head>
+    <body>
+        <h1>Mars Voyager on Chess</h1>
+                
+        <div>
+            <ul>
+                <li><a href="index.html">New Game</a></li>
+            </ul>
+        </div>
+        
+        <div id="Footer" data-depth="../" data-topic="Chess" data-version="1.0"></div>
+
+        <script id="pageScriptId">//<![CDATA[
+        const DEBUG = (false && (location.href.indexOf("file:") == 0));
+        
+        const FILENAMES = ["a", "b", "c", "d", "e", "f", "g", "h"];
+        
+        const QPOSITIONS = "?Pos";
+        const QFROM = "&From";
+        const QTO = "&To";
+        const QPROMOTION = "&Prom";
+        const QTURN = "&Turn"; // automatically turn board
+        const QREC = "&Rec"; // recent moves
+        
+        const QMOVES = "&Move"; // Legacy number of moves
+        const QCASTLING = "&Cast"; // Legacy
+        
+        const FENSEP = "_"; // for FEN we use separator "_", not space
+        const SEP = "."; // my sep of pieces (for FEN rank separator is not "/" but ".") 
+        const RECSEP = "_";
+
+        let queryFrom = getQueryValue(QFROM, null);
+        let queryTo = getQueryValue(QTO, null);
+        
+        let queryPositions = getQueryValue("?Positions", null); // legacy 2021-01-08 query "Positions";        
+        if (queryPositions == null) {
+            queryPositions = getQueryValue(QPOSITIONS, null);
+        }
+
+        if (((queryFrom == null) || (queryTo == null) || (queryPositions == null))) {
+            window.location.replace("index.html");
+        }
+                
+        let queryCastling = getQueryValue(QCASTLING, "");
+        let queryMoves = parseInt(getQueryValue(QMOVES, 1));
+        
+        let queryRecent = getQueryValue(QREC, "");
+        queryRecent = queryRecent.replace(/,/g, RECSEP); // replace all legacy comma (,) with underscore (_)
+        
+        let queryPromotion = getQueryValue(QPROMOTION, null);
+        
+        let queryTurn = (getQueryValue(QTURN, false) == "true"); // automatically turn board              
+          
+        if (queryFrom != null) {
+            let i = queryPositions.indexOf(queryFrom);
+            lastMoveColor = queryPositions.substring(i - 2, i - 1);
+        }
+        
+        let pieces = [];
+        placePieces(queryPositions);
+
+        // FEN describes the previous state
+        // En passant for current state
+        let r = getRank(queryTo);
+        let f = getFile(queryTo);
+        let lastMoveEnablesEnPassantToPos = "-";
+        if (Math.abs(r - getRank(queryFrom)) == 2) {
+            if (getColor(getPieceAtPosition(queryFrom)) == "W") {
+                lastMoveEnablesEnPassantToPos = f + (r - 1);
+            } else {
+                lastMoveEnablesEnPassantToPos = f + (r + 1);
+            }
+        }
+        
+        newQuery();
+        
+        
+        function placePieces(poses) {
+            let positions = poses.split(SEP);
+            for (let i = 0; i < positions.length; i++) {
+                let p = positions[i];
+                if (p.length == 4) { // . at end
+                    pieces.push(p);
+                }
+            }
+        }
+        
+                                              
+        /* functions with position parameter e.g. "a1" */    
+                                      
+        function getPieceAtPosition(pos) {
+            for (let i = 0; i < pieces.length; i++) {
+                if (getPiecePosition(pieces[i]) == pos) {
+                    return pieces[i];
+                }
+            }
+            return null;
+        }
+        function getFileIndex(pos) {
+            return FILENAMES.indexOf(getFile(pos));
+        }
+        function getFile(pos) {
+            return pos.substring(0, 1);
+        }
+        function getRank(pos) {
+            return parseInt(pos.substring(1, 2));
+        }
+ 
+ 
+        /* functions with piece parameter */
+        
+        function getColor(piece) {
+            return piece.substring(0, 1);
+        }
+        function getType(piece) {
+            return piece.substring(1, 2);
+        }
+        function getPiecePosition(piece) {
+            return piece.substring(2, 4);
+        }
+                 
+                                  
+        /* Queries support */
+                
+        function newQuery() {
+            // QPOSITIONS is before move
+            let href = "index.html" + 
+                QPOSITIONS + "=" + getFEN() + 
+                QFROM + "=" + queryFrom + 
+                QTO + "=" + queryTo;
+                
+            if (queryPromotion != null) {
+                href = href + QPROMOTION + "=" + queryPromotion;
+            }
+            
+            // no QTURN
+            
+            href = href + QREC + "=" + queryRecent;
+        
+            // replace prohibits using Back
+            // the user can still reload shared link
+            window.location.replace(href);
+        }
+        
+        // Forsyth–Edwards Notation
+        // https://en.wikipedia.org/wiki/Forsyth%E2%80%93Edwards_Notation
+        // rnbqkbnr.pppppppp.8.8.8.8.PPPPPPPP.RNBQKBNR_w_KQkq_-_0_1
+        // rnbqkbnr.pp1ppppp.8.2p5.4P3.5N2.PPPP1PPP.RNBQKB1R_b_KQkq_-_1_2
+        function getFEN() {
+            let fen = "";
+            for (let r = 8; r > 0; r--) {
+                let empty = 0;
+                for (let f = 0; f < 8; f++) {
+                    let piece = getPieceAtPosition(FILENAMES[f] + r);
+                    if (piece == null) {
+                        empty++;
+                    } else {
+                        if (empty > 0) {
+                            fen = fen + empty; 
+                        }
+                        let type = getType(piece);
+                        if (getColor(piece) == "W") {
+                            fen = fen + type; 
+                        } else {
+                            fen = fen + type.toLowerCase(); 
+                        }
+                        empty = 0; 
+                    }
+                }
+                if (empty > 0) {
+                    fen = fen + empty; 
+                }
+                if (r != 1) {
+                    fen = fen + SEP;
+                }
+            }
+            
+            // FEN next move color, lower case w or b
+            fen = fen + FENSEP + ((getColor(getPieceAtPosition(queryFrom)) == "W") ? "b": "w") + FENSEP;
+            
+            // "K" (White can castle kingside), 
+            // "Q" (White can castle queenside), 
+            // "k" (Black can castle kingside), and/or 
+            // "q" (Black can castle queenside).
+
+            // KQkq Castling
+            
+            let castling = false;
+            if (queryCastling.indexOf("e1") < 0) {
+                if (queryCastling.indexOf("h1") < 0) {
+                    fen = fen + "K";
+                    castling = true;
+                }
+                if (queryCastling.indexOf("a1") < 0) {
+                    fen = fen + "Q";
+                    castling = true;
+                }
+            }
+            if (queryCastling.indexOf("e8") < 0) {
+                if (queryCastling.indexOf("h8") < 0) {
+                    fen = fen + "k";
+                    castling = true;
+                }
+                if (queryCastling.indexOf("a8") < 0) {
+                    fen = fen + "q";
+                    castling = true;
+                }
+            }
+            if (!castling) {
+                fen = fen + "-";
+            }
+            
+            fen = fen + FENSEP + lastMoveEnablesEnPassantToPos;
+
+            // fifty-move rule, https://en.wikipedia.org/wiki/Fifty-move_rule
+            fen = fen + FENSEP + 0; // not implemented in Legacy
+
+            fen = fen + FENSEP + queryMoves;
+            return fen;
+        }
+
+/*
+Legacy examples
+
+Sparse board
+?Pos=BRa8.BRf1.BBc2.BBh2.BKe6.BPa7.BPb6.BPf3.BPg4.BPh6.WRa1.WRh1.WNb1.WNf4.WKe3.WPa5.WPb5.WPg2.WPh5.&From=g4&To=g3&Prom=P&Cast=e8e1h8&Turn=true        
+
+?Pos=BRa8.BRh8.BNb8.BNg8.BBc8.BBf8.BQd8.BKe8.BPa7.BPb7.BPc7.BPd5.BPe5.BPf7.BPg7.BPh7.WRa1.WRh1.WNb1.WNg1.WBc1.WBf1.WQd1.WKe1.WPa2.WPb2.WPc2.WPd4.WPe4.WPf4.WPg2.WPh2.&From=f7&To=f5&Prom=P&Cast=&Turn=false&Move=3&Rec=d4.d5,e4.e5,f4.
+
+?Pos=BRa8.BRh8.BNb8.BNg8.BBc8.BBf8.BQd8.BKe8.BPa7.BPb7.BPc7.BPd5.BPe5.BPf7.BPg7.BPh7.WRa1.WRh1.WNb1.WNg1.WBc1.WBf1.WQd1.WKe1.WPa2.WPb2.WPc2.WPd4.WPe4.WPf4.WPg2.WPh2.&From=f7&To=f5&Prom=P&Cast=&Turn=false&Move=3&Rec=
+
+"Positions"
+?Positions=BRa8.BRf1.BBc2.BBh2.BKe6.BPa7.BPb6.BPf3.BPg4.BPh6.WRa1.WRh1.WNb1.WNf4.WKe3.WPa5.WPb5.WPg2.WPh5.&From=g4&To=g3&Prom=P&Cast=e8e1h8&Turn=true
+*/
+        
+        //]]></script>
+    </body>
+</html>
