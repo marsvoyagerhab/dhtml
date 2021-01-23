@@ -29,16 +29,30 @@
             width: 100px;
             height: 100px;
         }
+        div {
+            width: 400px;
+        }
         </style>
     </head>
-    <body>
+    <body onload="start();">
         <h1>Drawing an ellipse</h1>
         
         <div>
             <canvas id="Canvas" onclick="stopOrStart();" width="400" height="300"></canvas>
             <img id="Pen" src="images/Pen.png" width="200" height="253"/>
+        </div>
+        
+        <div>
             <ul>
-                <li></li>
+                <li>Given are the width and height of the ellipse.</li>
+                <li>The length of the string (red) shall be equal to the width, i.e. the major axis (2*a).</li>
+                <li>The foci (F), at the equal distance (c) from the center, are found when the pen reaches the half height.</li>
+                <li>The eccentricity of the ellipse is c/a.</li>
+            </ul>
+        
+            <div>Wikipedia link</div>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Ellipse">Ellipse</a></li>
             </ul>
         </div>
         
@@ -46,183 +60,186 @@
 
         <script>//<![CDATA[
         updatePage();
-        
+
         const CANVAS = document.getElementById("Canvas");
         const ctx = CANVAS.getContext("2d");
-        
+
         const PEN = document.getElementById("Pen");
-        
-        
+
+        const DARKTEXTCOLOR = "#03081e"; // CSS background
         const TEXTCOLOR = "#ACA39A"; // same as in CSS
         const STRINGCOLOR = "red"; 
         const LINEWIDTH = 2;
         const ALPHA = "0.25"; // lower is more transparent
-        
+
         const ANIMTIME = 50; // animation delay (ms)
-        
+
         // ellipse
         const cx = CANVAS.width/2;
         const cy = CANVAS.height/2;
-        const a = 3*CANVAS.width/4;
-        const b = 2*CANVAS.height/3;
-        
+        const a = 3*CANVAS.width/8;
+        const b = 2*CANVAS.height/6;
+
+        const N = 100;
+        const DA = Math.PI/N;
+
+        let running = true;
+
         let X;
         let Y;
         let EN;
-        let N = 10;
-        let DA = Math.PI/N;
-        
+
         let step;
         let N0;
-        let running = true;
+        let N2;
+
+        let interval;
         
-        setDefault();
-        
-        PEN.addEventListener("load", e => {
-            init();
-        });
-        
+        function start() {
+            setDefault();
+            interval = setInterval(drawBackground, ANIMTIME);
+        }
+
         function setDefault() {
             X = 0;
             Y = 0;
             EN = 0;
-            N = 100;
-            DA = Math.PI/N;
-        
+
             step = -1;
             N0 = 0;
+            N2 = 0;
         }
-        
+
         function stopOrStart() {
+            clearInterval(interval);
             running = (!running);
             if (running) {
                 drawBackground();
+                interval = setInterval(drawBackground, ANIMTIME);
+            } else {
+                ctx.translate(cx, cy);
+                ctx.shadowColor = "rgba(0,0,0,0)";
+                drawText("Paused",  a/2, -b - 20, DARKTEXTCOLOR);
+                ctx.translate(-cx, -cy);
             }
         }
-        
-        function init() {
-            ctx.translate(cx, cy);
-            ctx.save();
-            
-            drawBackground();
-        }
+
         function drawBackground() {
             clearCanvas();
-            
-            drawMark(-a/2, 0);
-            drawMark( a/2, 0);
-            drawMark(0, -b/2);
-            drawMark(0,  b/2);
-            
+            ctx.translate(cx, cy);
+
+            drawMark(-a, 0);
+            drawMark(+a, 0);
+            drawMark(0, -b);
+            drawMark(0,  b);
+
             ctx.strokeStyle = TEXTCOLOR;
             ctx.lineWidth = LINEWIDTH;
-            
-            drawLine(-a/2, 0, a/2, 0);
-            drawLine(0, -b/2, 0, b/2);
-            
+
+            drawLine(-a, 0, a, 0);
+            drawLine(0, -b, 0, b);
+
             drawString(X, Y);
             
-            let time = ANIMTIME;
-
             if (step > -1) {
-                
                 if (step == 0) {
                     Y = Y + 2;
-                }
-                if (Y > b/2) {
-                    Y = b/2;
-                    step = 1;
-                }
-                if (step == 1) {
+                    if (Y > b) {
+                        Y = b;
+                        step = 1;
+                    }
+                } else if (step == 1) {
                     EN++;
-                    X = (a/2)*Math.cos(EN*DA + Math.PI/2);
-                    Y = (b/2)*Math.sin(EN*DA + Math.PI/2);
+                    X = a*Math.cos(EN*DA + Math.PI/2);
+                    Y = b*Math.sin(EN*DA + Math.PI/2);
                     
-                    if (EN > 2*N + 1) {
+                    if (EN > 2*N - 1) {
+                        step = 2;
+                    }
+                } else if (step == 2) {
+                    N2++;
+                    if (N2*ANIMTIME > 2000) {
+                        step = -1;
                         setDefault();
-                        time = 2000;
                     }
                 }
             } else {
-                
                 N0++;
-                if (N0 > 30) {
+                if (N0*ANIMTIME > 3000) {
                     step = 0;
                 }
             }
             
-            if (running) {
-                setTimeout(drawBackground, time);
-                //r = setInterval(drawBackground, ANIMTIME);
-                //window.requestAnimationFrame(drawBackground);
-            } else {
-                drawText("Paused",  50, -b/2);
-            }
+            ctx.translate(-cx, -cy);
         }
         function drawString(x, y) {
-            let xp = a/2;
+            let xp = a;
             if (step == 0) {
-                xp = Math.sqrt(Math.pow(a/2, 2) - Math.pow(y, 2));
-            } else if (step == 1) {
+                xp = Math.sqrt(Math.pow(a, 2) - Math.pow(y, 2));
+            } else if (step > 0) {
                 // Foci
-                xp = Math.sqrt(Math.pow(a/2, 2) - Math.pow(b/2, 2));
+                xp = Math.sqrt(Math.pow(a, 2) - Math.pow(b, 2));
 
                 drawMark(-xp, 0);
-                drawMark( xp, 0);
-                
-                drawText("F", -xp, -10);
-                drawText("F",  xp, -10);
+                drawMark(+xp, 0);
 
-                ctx.strokeStyle = "black";
+                drawText("F", -xp, -10, DARKTEXTCOLOR);
+                drawText("F", +xp, -10, DARKTEXTCOLOR);
+
+                ctx.strokeStyle = DARKTEXTCOLOR;
                 ctx.beginPath();
-                ctx.moveTo(0, b/2);
+                ctx.moveTo(0, b);
                 for (let i = 0; i <= EN; i++) {
-                    let ex = (a/2)*Math.cos(i*DA + Math.PI/2);
-                    let ey = (b/2)*Math.sin(i*DA + Math.PI/2);
+                    let ex = a*Math.cos(i*DA + Math.PI/2);
+                    let ey = b*Math.sin(i*DA + Math.PI/2);
                     ctx.lineTo(ex, ey);
                 }
                 ctx.stroke();
             }
+            
             ctx.shadowOffsetX = 2*LINEWIDTH;
             ctx.shadowOffsetY = 2*LINEWIDTH;
             ctx.shadowColor = TEXTCOLOR;
             ctx.shadowBlur = 2*LINEWIDTH;
-
-            if (N0 > 15) {
-                let endL = a/10; // length of string ends
-                        
-                ctx.strokeStyle = STRINGCOLOR;
-                ctx.lineWidth = 2*LINEWIDTH;
             
-                // string
-                drawLine(-xp, 0, x, y);
-                drawLine( xp, 0, x, y);
-            
-                // ends
-                drawLine(-xp, endL,-xp, 0);
-                drawLine( xp, endL, xp, 0);
+            if (step != 2) {
+                if (N0*ANIMTIME > 1500) {
+                    let endL = b/3; // length of dangling string ends
 
-                // pins
-                ctx.strokeStyle = "black";
-                ctx.lineWidth = LINEWIDTH;
-                drawCircle(-xp, 0, 2);
-                drawCircle( xp, 0, 2);
+                    ctx.strokeStyle = STRINGCOLOR;
+                    ctx.lineWidth = 2*LINEWIDTH;
+
+                    // string
+                    drawLine(-xp, 0, x, y);
+                    drawLine(+xp, 0, x, y);
+
+                    // ends
+                    drawLine(-xp, endL,-xp, 0);
+                    drawLine(+xp, endL, xp, 0);
+
+                    // pins
+                    ctx.strokeStyle = DARKTEXTCOLOR;
+                    ctx.lineWidth = LINEWIDTH;
+                    
+                    drawCircle(-xp, 0, 2);
+                    drawCircle(+xp, 0, 2);
+                }
             }
-            
             ctx.drawImage(PEN, x, y - PEN.height, PEN.width, PEN.height);
-        
-            var vp = CANVAS.getBoundingClientRect();
-        
-            PEN.style.left = (x + cx + vp.left) + "px";
-            PEN.style.top  = (y + cy + vp.top - PEN.height) + "px";
+
+            let vp = CANVAS.getBoundingClientRect(); // in viewport
+            let scrollLeft = (window.pageXOffset || document.documentElement.scrollLeft);
+            let scrollTop = (window.pageYOffset || document.documentElement.scrollTop);
+
+            PEN.style.left = (x + cx + (vp.left + scrollLeft)) + "px";
+            PEN.style.top  = (y + cy + (vp.top + scrollTop) - PEN.height) + "px";
         }
-        
+
         function clearCanvas() {
-            ctx.restore();
             //ctx.clearRect(0, 0, CANVAS.width, CANVAS.height);
             ctx.shadowColor = "rgba(0,0,0,0)";
             ctx.fillStyle = "white";
-            ctx.fillRect(-cx, -cy, CANVAS.width, CANVAS.height);
+            ctx.fillRect(0, 0, CANVAS.width, CANVAS.height);
         }
         function drawLine(x1, y1, x2, y2) {
             ctx.beginPath();
@@ -233,9 +250,9 @@
         function drawMark(x, y) {
             ctx.strokeStyle = TEXTCOLOR;
             ctx.lineWidth = LINEWIDTH;
-            
-            let s = 10;
-            
+
+            let s = 8;
+
             ctx.beginPath();
             ctx.moveTo(x - s, y);
             ctx.lineTo(x + s, y);
@@ -248,10 +265,10 @@
             ctx.arc(x, y, r, 0, 2*Math.PI);
             ctx.stroke();
         }
-        function drawText(txt, x, y) {
-            let fontSize = 15;
+        function drawText(txt, x, y, color) {
+            let fontSize = 18;
 
-            ctx.fillStyle = TEXTCOLOR;
+            ctx.fillStyle = color;
             ctx.font = fontSize + "px Arial";
             ctx.textAlign = "center";
 
