@@ -31,8 +31,8 @@
   
         <style>
             body, div {
-                 width: 450px;
-                 max-width: 450px;
+                 width: 500px;
+                 max-width: 500px;
             }
             img#Background {
                 position: absolute;
@@ -85,9 +85,9 @@
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
             <canvas id="Border"></canvas>
             
-            <!--
+            
             <img id="Background" src="images/Background_450x450.png"/>
-            -->
+            
             <img id="Board" src="images/Board.png"/>
         </div>      
         
@@ -210,7 +210,8 @@
         const DIV = document.getElementById("BoardDiv");
         DIV.height = BOARD + 2*BORDERW;
 
-        //setSize("Background", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
+        setSize("Background", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
+        
         setSize("Board", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         const BORDER = setSize("Border", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         
