@@ -1,0 +1,262 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2021-01-23 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+        <meta name="viewport" content="width=device-width, initial-scale=0.9"/>
+
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <title>Mars Voyager on Math</title>
+
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
+
+        <style>
+        img#Pen {
+            z-index: 10;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 100px;
+            height: 100px;
+        }
+        </style>
+    </head>
+    <body>
+        <h1>Drawing an ellipse</h1>
+        
+        <div>
+            <canvas id="Canvas" onclick="stopOrStart();" width="400" height="300"></canvas>
+            <img id="Pen" src="images/Pen.png" width="200" height="253"/>
+            <ul>
+                <li></li>
+            </ul>
+        </div>
+        
+        <div id="Footer" data-depth="../" data-topic="Ellipse" data-version="1.0"></div>        
+
+        <script>//<![CDATA[
+        updatePage();
+        
+        const CANVAS = document.getElementById("Canvas");
+        const ctx = CANVAS.getContext("2d");
+        
+        const PEN = document.getElementById("Pen");
+        
+        
+        const TEXTCOLOR = "#ACA39A"; // same as in CSS
+        const STRINGCOLOR = "red"; 
+        const LINEWIDTH = 2;
+        const ALPHA = "0.25"; // lower is more transparent
+        
+        const ANIMTIME = 50; // animation delay (ms)
+        
+        // ellipse
+        const cx = CANVAS.width/2;
+        const cy = CANVAS.height/2;
+        const a = 3*CANVAS.width/4;
+        const b = 2*CANVAS.height/3;
+        
+        let X;
+        let Y;
+        let EN;
+        let N = 10;
+        let DA = Math.PI/N;
+        
+        let step;
+        let N0;
+        let running = true;
+        
+        setDefault();
+        
+        PEN.addEventListener("load", e => {
+            init();
+        });
+        
+        function setDefault() {
+            X = 0;
+            Y = 0;
+            EN = 0;
+            N = 100;
+            DA = Math.PI/N;
+        
+            step = -1;
+            N0 = 0;
+        }
+        
+        function stopOrStart() {
+            running = (!running);
+            if (running) {
+                drawBackground();
+            }
+        }
+        
+        function init() {
+            ctx.translate(cx, cy);
+            ctx.save();
+            
+            drawBackground();
+        }
+        function drawBackground() {
+            clearCanvas();
+            
+            drawMark(-a/2, 0);
+            drawMark( a/2, 0);
+            drawMark(0, -b/2);
+            drawMark(0,  b/2);
+            
+            ctx.strokeStyle = TEXTCOLOR;
+            ctx.lineWidth = LINEWIDTH;
+            
+            drawLine(-a/2, 0, a/2, 0);
+            drawLine(0, -b/2, 0, b/2);
+            
+            drawString(X, Y);
+            
+            let time = ANIMTIME;
+
+            if (step > -1) {
+                
+                if (step == 0) {
+                    Y = Y + 2;
+                }
+                if (Y > b/2) {
+                    Y = b/2;
+                    step = 1;
+                }
+                if (step == 1) {
+                    EN++;
+                    X = (a/2)*Math.cos(EN*DA + Math.PI/2);
+                    Y = (b/2)*Math.sin(EN*DA + Math.PI/2);
+                    
+                    if (EN > 2*N + 1) {
+                        setDefault();
+                        time = 2000;
+                    }
+                }
+            } else {
+                
+                N0++;
+                if (N0 > 30) {
+                    step = 0;
+                }
+            }
+            
+            if (running) {
+                setTimeout(drawBackground, time);
+                //r = setInterval(drawBackground, ANIMTIME);
+                //window.requestAnimationFrame(drawBackground);
+            } else {
+                drawText("Paused",  50, -b/2);
+            }
+        }
+        function drawString(x, y) {
+            let xp = a/2;
+            if (step == 0) {
+                xp = Math.sqrt(Math.pow(a/2, 2) - Math.pow(y, 2));
+            } else if (step == 1) {
+                // Foci
+                xp = Math.sqrt(Math.pow(a/2, 2) - Math.pow(b/2, 2));
+
+                drawMark(-xp, 0);
+                drawMark( xp, 0);
+                
+                drawText("F", -xp, -10);
+                drawText("F",  xp, -10);
+
+                ctx.strokeStyle = "black";
+                ctx.beginPath();
+                ctx.moveTo(0, b/2);
+                for (let i = 0; i <= EN; i++) {
+                    let ex = (a/2)*Math.cos(i*DA + Math.PI/2);
+                    let ey = (b/2)*Math.sin(i*DA + Math.PI/2);
+                    ctx.lineTo(ex, ey);
+                }
+                ctx.stroke();
+            }
+            ctx.shadowOffsetX = 2*LINEWIDTH;
+            ctx.shadowOffsetY = 2*LINEWIDTH;
+            ctx.shadowColor = TEXTCOLOR;
+            ctx.shadowBlur = 2*LINEWIDTH;
+
+            if (N0 > 15) {
+                let endL = a/10; // length of string ends
+                        
+                ctx.strokeStyle = STRINGCOLOR;
+                ctx.lineWidth = 2*LINEWIDTH;
+            
+                // string
+                drawLine(-xp, 0, x, y);
+                drawLine( xp, 0, x, y);
+            
+                // ends
+                drawLine(-xp, endL,-xp, 0);
+                drawLine( xp, endL, xp, 0);
+
+                // pins
+                ctx.strokeStyle = "black";
+                ctx.lineWidth = LINEWIDTH;
+                drawCircle(-xp, 0, 2);
+                drawCircle( xp, 0, 2);
+            }
+            
+            ctx.drawImage(PEN, x, y - PEN.height, PEN.width, PEN.height);
+        
+            var vp = CANVAS.getBoundingClientRect();
+        
+            PEN.style.left = (x + cx + vp.left) + "px";
+            PEN.style.top  = (y + cy + vp.top - PEN.height) + "px";
+        }
+        
+        function clearCanvas() {
+            ctx.restore();
+            //ctx.clearRect(0, 0, CANVAS.width, CANVAS.height);
+            ctx.shadowColor = "rgba(0,0,0,0)";
+            ctx.fillStyle = "white";
+            ctx.fillRect(-cx, -cy, CANVAS.width, CANVAS.height);
+        }
+        function drawLine(x1, y1, x2, y2) {
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+        }
+        function drawMark(x, y) {
+            ctx.strokeStyle = TEXTCOLOR;
+            ctx.lineWidth = LINEWIDTH;
+            
+            let s = 10;
+            
+            ctx.beginPath();
+            ctx.moveTo(x - s, y);
+            ctx.lineTo(x + s, y);
+            ctx.moveTo(x, y - s);
+            ctx.lineTo(x, y + s);
+            ctx.stroke();
+        }
+        function drawCircle(x, y, r) {
+            ctx.beginPath();
+            ctx.arc(x, y, r, 0, 2*Math.PI);
+            ctx.stroke();
+        }
+        function drawText(txt, x, y) {
+            let fontSize = 15;
+
+            ctx.fillStyle = TEXTCOLOR;
+            ctx.font = fontSize + "px Arial";
+            ctx.textAlign = "center";
+
+            ctx.fillText(txt, x, y);
+        }        
+        //]]></script>
+    </body>
+</html>
