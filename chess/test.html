@@ -34,25 +34,29 @@
                  width: 450px;
                  max-width: 450px;
             }
+            img#Background {
+                position: absolute;
+                left: 0px;
+                top: 0px;
+            }
             img#Board {
+                z-index: 10;
                 position: absolute;
                 left: 0px;
                 top: 0px;
             }
             img.Piece {
-                z-index: 10;
+                z-index: 20;
                 position: absolute;
-                width: 44px;
-                height: 44px;
             }
             canvas#Border {
-                z-index: 20;
+                z-index: 30;
                 position: absolute;
                 left: 0px;
                 top: 0px;
             }
             canvas#Overlay {
-                z-index: 30;
+                z-index: 40;
                 position: absolute;
                 left: 0px;
                 top: 0px;
@@ -60,6 +64,11 @@
             input, a.share {
                 border: solid 2px #4875B4;
                 padding: 3px 6px;
+            }
+            input {
+                margin: 6px 15px;
+            }
+            a.share {
                 margin: 0px 4px;
                 text-decoration: none;
             }
@@ -74,13 +83,17 @@
         
         <div id="BoardDiv" style="min-height:470px;">
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
-            <canvas id="Border"  onmousedown="userTurnBoard()"></canvas>
-        
+            <canvas id="Border"></canvas>
+            
+            <!--
+            <img id="Background" src="images/Background_450x450.png"/>
+            -->
             <img id="Board" src="images/Board.png"/>
         </div>      
         
         <div style="padding:15px 0px;">
-            <div id="ShareLinks">Share move: <input type="button" id="Share" value="Share"/></div>
+            <div id="ShareLinks">Share your move: </div>
+            <input type="button" id="Share" value="Share"/>
         </div>
 
         <div id="Instructions">
@@ -125,7 +138,7 @@
             </ul>
         </div>
         
-        <div id="Visitors">Visitors: 2</div>
+        <div id="Visitors">Visitors: </div>
                 
         <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
 
@@ -134,7 +147,6 @@
         const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
         const DEBUG = (true && LOCALEXECUTION);
 
-        /*
         if (!LOCALEXECUTION) {
             // size 60, visitors, started 2021-01-19
             let visitors = "<a href=\"https://www.freecounterstat.com\" title=\"web counter\">" +
@@ -144,10 +156,8 @@
             let e = document.getElementById("Visitors");
             e.innerHTML = e.innerHTML + visitors;
         }
-        */
         
         const share = document.getElementById("Share");
-        /*
         if (navigator.share) {
             // https://css-tricks.com/how-to-use-the-web-share-api/      
             // iOS Safari, desktop Safari
@@ -166,7 +176,6 @@
                 share.remove();
             }
         }
-        */
         
         const ORIGINALTITLE = document.title;
         
@@ -184,12 +193,10 @@
         // Graphics, element sizes
         
         const HEADERHEIGHT = 50;
-        const BOARD = 350;
+        const BOARD = 400;
         const W = BOARD/8;
         
         const BORDERW = 25;
-        const OFFSETX = BORDERW;
-        const OFFSETY = HEADERHEIGHT + BORDERW;
         
         const TEXTCOLOR = "#ACA39A"; // same as in CSS
         const LASTMOVECOLOR = "blue";
@@ -203,10 +210,16 @@
         const DIV = document.getElementById("BoardDiv");
         DIV.height = BOARD + 2*BORDERW;
 
+        //setSize("Background", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         setSize("Board", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         const BORDER = setSize("Border", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
         
-        const CANVAS = setSize("Overlay", BOARD, OFFSETX, OFFSETY);
+        
+        
+        const CANVAS = setSize("Overlay", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
+        
+        
+        
         const ctx = CANVAS.getContext("2d");
         
         // Query
@@ -294,14 +307,16 @@
 
 
         /* USER INPUT */
+        
+        // the user switches the rules
+        function setSloppyRules() {
+            m_querySloppy = (!m_querySloppy);
+            reloadQuery();
+        }
 
         // the user switches the automatic turning
         function setTurnBoard() {
             m_queryTurn = (!m_queryTurn);
-            reloadQuery();
-        }
-        function setSloppyRules() {
-            m_querySloppy = (!m_querySloppy);
             reloadQuery();
         }
 
@@ -329,6 +344,10 @@
         //  m_queryFrom
         //  m_queryTo
         function clickDetected(event) {
+            if (isBorderClicked(event)) {
+                userTurnBoard();
+                return;
+            }
             if (!m_moveShown) {
                 return;
             }
@@ -998,10 +1017,6 @@
 
         /* FUNCTIONS WITH PIECE PARAMETER, this is the img element */
         
-        function getPiecePosition(piece) {
-            return getPositionFromXY(parseInt(piece.style.left) - OFFSETX, parseInt(piece.style.top) - OFFSETY);
-        }
-
         function getType(piece) {
             let type = "";
             if (piece != null) {
@@ -1096,11 +1111,6 @@
                 pieces = DIV.getElementsByClassName(PIECE_CLASS);
             }
             m_addedPiecesIndex = 0;
-        }
-        
-        function setPiecePosition(element, pos) {
-            element.style.left = (getX(pos) + OFFSETX) + "px";
-            element.style.top  = (getY(pos) + OFFSETY) + "px";
         }
 
         function placePieces(fen) {
@@ -1225,13 +1235,30 @@
         }
         
         
+        /* XY IN PAGE COORDINATES */
+        
+        function getPiecePosition(piece) {
+            return getPositionFromXY(parseInt(piece.style.left), parseInt(piece.style.top) - HEADERHEIGHT);
+        }
+        function setPiecePosition(element, pos) {
+            element.style.left = getX(pos) + "px";
+            element.style.top  = (getY(pos) + HEADERHEIGHT) + "px";
+        }
+        
+        
         /* XY IN BOARD OVERLAY COORDINATES */
-
+        
+        function isBorderClicked(event) {
+            let x = event.offsetX;
+            let y = event.offsetY;
+            return ((x < BORDERW) || (x > (BOARD + BORDERW)) || (y < BORDERW) ||  (y > (BOARD + BORDERW)));
+        }
+        
         function getPositionFromXY(x, y) {
             // file 0..7
-            let fileIndex = Math.floor(x/W + 0.5);
+            let fileIndex = Math.floor((x - BORDERW)/W + 0.5);
             // rank 1..8
-            let rank = 8 - Math.floor(y/W + 0.5);
+            let rank = 8 - Math.floor((y - BORDERW)/W + 0.5);
             
             if (isTurnedBlackDown()) {
                 fileIndex = 7 - fileIndex;
@@ -1244,14 +1271,14 @@
             if (isTurnedBlackDown()) {
                 fileIndex = 7 - fileIndex;
             }
-            return W*fileIndex;
+            return W*fileIndex + BORDERW;
         }
         function getY(pos) {
             let ranki = 8 - getRank(pos); // [0..7]
             if (isTurnedBlackDown()) {
                 ranki = 7 - ranki;
             }
-            return W*ranki;
+            return W*ranki + BORDERW;
         }
         function isTurnedBlackDown() {
             // XOR
@@ -1281,7 +1308,8 @@
         //  m_querySloppy
         //  m_queryRecent  
         function newQuery() {
-            let href = "index.html"
+            let href = window.location.href;
+            href = href.substring(0, href.indexOf("?")); // does not include "?" if available
             
             // QPOSITIONS is before move
             href = href + QPOSITIONS + "=" + m_queryFEN;
@@ -1300,7 +1328,7 @@
             if (m_queryRecent != "") {
                 href = href + QREC + "=" + m_queryRecent;
             }
-            
+
             if (DEBUG || ALLOWBACK) {
                 window.location.href = href;
             } else {
