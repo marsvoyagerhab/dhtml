@@ -30,14 +30,24 @@
         <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
   
         <style>
-            body, div {
-                 width: 500px;
-                 max-width: 500px;
+            body {
+                 width: 450px;
+                 max-width: 450px;
+            }
+            div {
+                 width: 400px;
+                 max-width: 400px;
+            }
+            div#BoardDiv {
+                width: 450px;
+                max-width: 450px;
+                min-height: 470px;
             }
             img#Background {
-                position: absolute;
                 left: 0px;
                 top: 0px;
+                padding: 0px;
+                margin: 0px;
             }
             img#Board {
                 z-index: 10;
@@ -81,7 +91,7 @@
     <body>
         <h1><span id="MoveSpan"></span><span id="CheckMate">Mars Voyager on Chess</span></h1>
         
-        <div id="BoardDiv" style="min-height:470px;">
+        <div id="BoardDiv">
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
             <canvas id="Border"></canvas>
             
@@ -194,9 +204,9 @@
         
         const HEADERHEIGHT = 50;
         const BOARD = 400;
-        const W = BOARD/8;
-        
+        const W = BOARD/8;        
         const BORDERW = 25;
+        const SIZE = BOARD + 2*BORDERW;
         
         const TEXTCOLOR = "#ACA39A"; // same as in CSS
         const LASTMOVECOLOR = "blue";
@@ -208,18 +218,12 @@
         const ALLOWBACK = true;
 
         const DIV = document.getElementById("BoardDiv");
-        DIV.height = BOARD + 2*BORDERW;
+        DIV.height = SIZE;
 
-        setSize("Background", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
-        
-        setSize("Board", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
-        const BORDER = setSize("Border", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
-        
-        
-        
-        const CANVAS = setSize("Overlay", BOARD + 2*BORDERW, 0, HEADERHEIGHT);
-        
-        
+        setSize("Background", SIZE, 0, HEADERHEIGHT);
+        setSize("Board", SIZE, 0, HEADERHEIGHT);
+        const BORDER = setSize("Border", SIZE, 0, HEADERHEIGHT);
+        const CANVAS = setSize("Overlay", SIZE, 0, HEADERHEIGHT);
         
         const ctx = CANVAS.getContext("2d");
         
