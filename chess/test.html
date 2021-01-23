@@ -32,15 +32,12 @@
         <style>
             body {
                  width: 450px;
-                 max-width: 450px;
             }
             div {
-                 width: 400px;
-                 max-width: 400px;
+                 width: 450px;
             }
             div#BoardDiv {
                 width: 450px;
-                max-width: 450px;
                 min-height: 470px;
             }
             img#Background {
@@ -152,12 +149,12 @@
                 
         <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
 
-        <script id="pageScriptId">//<![CDATA[
+        <script>//<![CDATA[
         updatePage();
         const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
         const DEBUG = (true && LOCALEXECUTION);
 
-        if (!LOCALEXECUTION) {
+        if (!DEBUG) {
             // size 60, visitors, started 2021-01-19
             let visitors = "<a href=\"https://www.freecounterstat.com\" title=\"web counter\">" +
                 "<img style=\"vertical-align:middle;\" " +
