@@ -15,5 +15,6 @@
     ],
     "theme_color": "#ffffff",
     "background_color": "#ffffff",
+    "start_url": "https://marsvoyagerhab.github.io/dhtml/chess/",
     "display": "standalone"
 }
