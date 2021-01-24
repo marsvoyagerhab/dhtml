@@ -17,8 +17,8 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
 
         <script type="text/javascript" src="../marsvoyager.js"></script>
-        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
-        <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
         
         <!-- https://realfavicongenerator.net -->
         <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=1" sizes="180x180"/>
@@ -55,7 +55,7 @@
         <h1>Drawing an ellipse</h1>
         
         <div>
-            <canvas id="Canvas" onclick="stopOrStart();" width="400" height="300"></canvas>
+            <canvas id="Canvas" onmousedown="stopOrStart();" width="400" height="300"></canvas>
             <img id="Pen" src="images/Pen.png" width="200" height="253"/>
         </div>
         
@@ -129,7 +129,7 @@
             running = (!running);
             if (running) {
                 draw();
-                start();
+                interval = setInterval(draw, ANIMTIME);
             } else {
                 drawText(CANVAS.width/8, 2*FONTSIZE, "Paused", TEXTCOLOR);
             }
@@ -302,7 +302,8 @@
         }
         // xp is string end x-coordinate
         function drawString(xp, penX, penY) {
-            let endL = b/3; // length of dangling string ends
+            
+            let endL = a/6; // length of dangling string ends
 
             setShadow();
 
