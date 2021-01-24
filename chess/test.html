@@ -26,8 +26,23 @@
         <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
 
         <script type="text/javascript" src="../marsvoyager.js"></script>
-        <link rel="stylesheet" href="../marsvoyager.css" type="text/css"/>
-        <link rel="icon" href="../images/MarsVoyager_100x100.png"/>
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
+        
+        <!-- https://realfavicongenerator.net -->
+        <link rel="apple-touch-icon" href="/icons/apple-touch-icon.png?v=1" sizes="180x180"/>
+        <link rel="icon"             href="/icons/favicon-32x32.png?v=1"    sizes="32x32" type="image/png"/>
+        <link rel="icon"             href="/icons/favicon-16x16.png?v=1"    sizes="16x16" type="image/png"/>
+        <link rel="manifest"         href="/icons/site.webmanifest?v=1"/>
+        <link rel="mask-icon"        href="/icons/safari-pinned-tab.svg?v=1" color="#603cba"/>
+        <link rel="shortcut icon"    href="/icons/favicon.ico?v=1"/>
+        
+        <meta name="apple-mobile-web-app-title" content="Mars Chess"/>
+        <meta name="application-name"           content="Mars Chess"/>
+        <meta name="msapplication-TileColor"    content="#603cba"/>
+        <meta name="msapplication-TileImage"    content="/icons/mstile-144x144.png?v=1"/>
+        <meta name="msapplication-config"       content="/icons/browserconfig.xml?v=1"/>
+        <meta name="theme-color"                content="#ffffff">
   
         <style>
             body {
@@ -92,7 +107,6 @@
             <canvas id="Overlay" onmousedown="clickDetected(event)"></canvas>
             <canvas id="Border"></canvas>
             
-            
             <img id="Background" src="images/Background_450x450.png"/>
             
             <img id="Board" src="images/Board.png"/>
@@ -147,7 +161,7 @@
         
         <div id="Visitors">Visitors: </div>
                 
-        <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0"></div>
+        <div id="Footer" data-depth="../" data-topic="Chess" data-version="2.0" data-ownicons="true"></div>
 
         <script>//<![CDATA[
         updatePage();
