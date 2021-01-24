@@ -1,14 +1,14 @@
 {
-    "name": "",
-    "short_name": "",
+    "name": "Mars Voyager",
+    "short_name": "Mars Voyager",
     "icons": [
         {
-            "src": "https://marsvoyagerhab.github.io/dhtml/icons/android-chrome-192x192.png",
+            "src": "https://marsvoyagerhab.github.io/dhtml/icons/android-chrome-192x192.png?v=1",
             "sizes": "192x192",
             "type": "image/png"
         },
         {
-            "src": "https://marsvoyagerhab.github.io/dhtml/icons/android-chrome-384x384.png",
+            "src": "https://marsvoyagerhab.github.io/dhtml/icons/android-chrome-384x384.png?v=1",
             "sizes": "384x384",
             "type": "image/png"
         }
