@@ -9,12 +9,23 @@
         <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
         <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 
-        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
 
         <title>Mars Voyager on Math</title>
 
+
+        <meta name="author" content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title" property="og:title" content="Mars Voyager on Math"/>
+        <!-- min 200 x 200 for Facebook -->
+        <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
+        <meta name="description" property="og:description" content="Explore Maths"/>
+        <meta property="og:image:alt" content="Mars Voyager on Math"/>
+        <meta property="og:type" content="Science"/>
+
         <link rel="preconnect" href="https://fonts.gstatic.com"/>
-        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&display=swap"/> 
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&amp;display=swap"/> 
 
         <script type="text/javascript" src="../marsvoyager.js"></script>
         <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
@@ -26,12 +37,12 @@
         <link rel="icon"             href="../icons/favicon-16x16.png?v=1"    sizes="16x16" type="image/png"/>
         <link rel="manifest"         href="../icons/site.webmanifest?v=1"/>
         <link rel="mask-icon"        href="../icons/safari-pinned-tab.svg?v=1" color="#5bbad5"/>
-        <link rel="shortcut icon"    href="../icons/favicon.ico?v=1"/>
+        <link rel="shortcut icon"    href="favicon.ico?v=1"/>
         
         <meta name="apple-mobile-web-app-title" content="Mars Ellipse"/>
         <meta name="application-name"           content="Mars Ellipse"/>
-        <meta name="msapplication-TileColor"    content="#2b5797"/>
         <meta name="msapplication-config"       content="../icons/browserconfig.xml?v=1"/>
+        <meta name="msapplication-TileColor"    content="#2b5797"/>
         <meta name="theme-color"                content="#ffffff"/>
         
         <style>
@@ -51,12 +62,13 @@
         }
         </style>
     </head>
+        
     <body onload="start();">
         <h1>Drawing an ellipse</h1>
         
         <div>
             <canvas id="Canvas" onmousedown="stopOrStart();" width="400" height="300"></canvas>
-            <img id="Pen" src="images/Pen.png" width="200" height="253"/>
+            <img id="Pen" src="images/Pen.png" style="display:none;" width="200" height="253"/>
         </div>
         
         <div>
@@ -76,11 +88,13 @@
         <!-- "web counter" size 50% -->
         <div>Visitors: <span class="Visitors" id="sfcwr1rt91wtx7zmya71ge34829xpt4prsu"></span></div>
         <script type="text/javascript" 
-                src="https://counter8.stat.ovh/private/counter.js?c=wr1rt91wtx7zmya71ge34829xpt4prsu&down=async" async></script>
+                src="https://counter8.stat.ovh/private/counter.js?c=wr1rt91wtx7zmya71ge34829xpt4prsu&amp;down=async" async="true"></script>
          
         <div id="Footer" data-depth="../" data-topic="Ellipse" data-version="1.0"></div>        
 
+
         <script>//<![CDATA[
+        "use strict"; // don't allow hoisting or undeclared variables
         updatePage();
 
         const CANVAS = document.getElementById("Canvas");
@@ -92,17 +106,21 @@
         const TEXTCOLOR = "#ACA39A"; // same as in CSS
         const STRINGCOLOR = "red"; 
         const LINEWIDTH = 2;
-        const ALPHA = "0.25"; // lower is more transparent
         const FONTSIZE = 18;
 
         // states
-        const S_AXES = 10;
-        const S_STRING = 20;
-        const S_FOCI = 30;
-        const S_ELLIPSE = 40;
-        const S_FINAL = 50;
-        const S_FADE = 60;
+        let initState = -1;
+        const S_AXES = (initState++);
+        const S_STRING = (initState++);
+        const S_FOCI = (initState++);
+        const S_FOCIFOUND = (initState++);
+        const S_ELLIPSE = (initState++);
+        const S_FINAL = (initState++);
+        const S_FADE = (initState++);
 
+        const N = 200;
+        const DA = (2*Math.PI)/N;
+        
         const ANIMTIME = 30; // 50, animation delay (ms)
         let interval;
         let running;
@@ -119,8 +137,6 @@
         let c = getEllipseC();
         let b = getEllipseB();
         
-        const N = 200;
-        const DA = (2*Math.PI)/N;
         
         function start() {
             running = true;
@@ -145,43 +161,43 @@
             ctx.translate(CX, CY);
             
             drawAxes();
+            
+            let time = n*ANIMTIME/1000;
 
+            let fn;
             switch (state) {
                 case S_AXES: {
+                    fn = 1500/ANIMTIME;
                     drawPen(0, 0);
-
-                    if (n*ANIMTIME > 1500) {
-                        state = S_STRING;
-                        n = 0;
-                    }
                     break;
                 }
                 case S_STRING: { // straight string
+                    fn = 1500/ANIMTIME;
                     drawString(a, 0, 0);
                     drawPen(0, 0);
-
-                    if (n*ANIMTIME > 1500) {
-                        state = S_FOCI;
-                        n = 0;
-                    }
                     break;
                 }
                 case S_FOCI: { // find foci
-                    let fn = 3000/ANIMTIME; 
+                    fn = 3000/ANIMTIME;
                     let penY = n*b/fn;
                     let xp = Math.sqrt(Math.pow(a, 2) - Math.pow(penY, 2));
                     
                     drawString(xp, 0, penY);
                     drawPen(0, penY);
+                    break;
+                }
+                case S_FOCIFOUND: {
+                    fn = 500/ANIMTIME;
+                    let penX = 0;
+                    let penY = b;
 
-                    if (n >= fn) {
-                        state = S_ELLIPSE;
-                        n = 0;
-                        penY = b;
-                    }
+                    drawFoci();
+                    drawString(c, penX, penY);
+                    drawPen(penX, penY);
                     break;
                 }
                 case S_ELLIPSE: { // draw ellipse
+                    fn = N;
                     let penX = getEllipseX(n*DA);
                     let penY = getEllipseY(n*DA);
                     
@@ -189,29 +205,20 @@
                     drawEllipse(n);
                     drawString(c, penX, penY);
                     drawPen(penX, penY);
-
-                    if (n >= N) {
-                        state = S_FINAL;
-                        n = 0;
-                    }
                     break;
                 }
                 case S_FINAL: { // hide string
+                    fn = 2000/ANIMTIME;
                     let penX = getEllipseX(0);
                     let penY = getEllipseY(0);
                     
                     drawFoci();
                     drawEllipse(N);
                     drawPen(penX, penY);
-
-                    if (n*ANIMTIME > 2000) {
-                        state = S_FADE;
-                        n = 0;
-                    }
                     break;
                 }
                 case S_FADE: { // fade out and move pen to center
-                    let fn = 2000/ANIMTIME;
+                    fn = 2000/ANIMTIME;
                     let penX = getEllipseX(0);
                     let penY = getEllipseY(0);
                     
@@ -230,27 +237,29 @@
                     drawLine(-a, 0, a, 0);
                     drawLine(0, -b, 0, b); 
                                
-                    drawPen(0, b*(1 - (n/fn)));
-
-                    if (n >= fn) {
-                        state = S_AXES;
-                        n = 0;
-                        if (e > 0.8) {
-                            e = 0.8;
-                        } else {
-                            e = e - 0.2;
-                        }
-                        if (e < 0) {
-                            e = 0.9; // show a pretty flat ellipse
-                        }
-                        c = getEllipseC();
-                        b = getEllipseB();
-                    }
+                    drawPen(0, b*(1 - ((n - 1)/fn)));
                     break;
                 }
-                default: {
+            }
+            if (n >= fn) {
+                state++;
+                n = 0;
+                if (state > S_FADE) {
+                    state = 0;
+                    
+                    if (e > 0.8) {
+                        e = 0.8;
+                    } else {
+                        e = e - 0.2;
+                    }
+                    if (e < 0) {
+                        e = 0.9; // show a pretty flat ellipse
+                    }
+                    c = getEllipseC();
+                    b = getEllipseB();
                 }
             }
+            
             n++;
             
             ctx.translate(-CX, -CY);
@@ -334,7 +343,14 @@
         }
         function drawPen(x, y) {
             setShadow();
+            
             ctx.drawImage(PEN, x, y - PEN.height, PEN.width, PEN.height);
+            
+            // PEN has display:none, to avoid seeing it in corner at load
+            // before getting PEN.height
+            if (PEN.style.display == "none") {
+                PEN.style.display = "inline";                
+            }
             
             // pen, possibly outside CANVAS
             let vp = CANVAS.getBoundingClientRect(); // in viewport
