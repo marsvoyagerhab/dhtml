@@ -4,9 +4,11 @@ const DEBUGMAIN = (true && (location.href.indexOf("file:") == 0));
 
 function updatePage() {
     let footer = document.getElementById("Footer");
-    let depth = getAttribute(footer, "data-depth", "");
-    let topic = getAttribute(footer, "data-topic", null);
-    let version = getAttribute(footer, "data-version", null);
+    let depth = getElementAttribute(footer, "data-depth", "");
+    let topic = getElementAttribute(footer, "data-topic", null);
+    let version = getElementAttribute(footer, "data-version", null);
+    let ownIcons = getElementAttribute(footer, "data-ownicons", false); //  for check of meta tags
+    let visitorsId = getElementAttribute(footer, "data-visitors", null);
 
     if (DEBUGMAIN) {
         let head = document.getElementsByTagName("head")[0];
@@ -19,7 +21,7 @@ function updatePage() {
                 alert ("<meta>" + meta.name + " = " + meta.content);
             } else if ((meta.name == "application-name") && (meta.content.indexOf(topic) < 0)) {
                 alert ("<meta>" + meta.name + " = " + meta.content);
-            } else if ((meta.name == "msapplication-config") && (!meta.content.startsWith(depth))) {
+            } else if ((!ownIcons) && (meta.name == "msapplication-config") && (!meta.content.startsWith(depth))) {
                 alert ("<meta>" + meta.name + " = " + meta.content);
             }
         }
@@ -33,6 +35,11 @@ function updatePage() {
             }
         }
         */
+        
+        // check Console for welformed XML, possibly replace & by &amp; in html
+        var xhr = new XMLHttpRequest();
+        xhr.open("GET", window.location, true);
+        xhr.send();        
     }
     
     let main = document.getElementById("Main");
@@ -43,6 +50,25 @@ function updatePage() {
     }
     
     if (footer != null) {
+        if ((!DEBUGMAIN) && (visitorsId != null)) {
+            // size 60%
+            let name = "web counter"; // or hit counter
+        
+            let a = document.createElement("A");
+            a.className = "Visitors";
+            a.href = "https://www.freecounterstat.com";
+            a.title = name;
+        
+            let img = document.createElement("IMG");
+            img.src = "https://counter8.stat.ovh/private/freecounterstat.php?c=" + visitorsId;
+            img.title = name;
+            img.alt = name;
+        
+            a.appendChild(img);
+            footer.appendChild(document.createTextNode("Visitors: "));
+            footer.appendChild(a);
+        }
+        
         let div = document.createElement("DIV");
         
         let title = "Mars Voyager on Creativity and DHTML";
@@ -83,14 +109,13 @@ function updatePage() {
         
         footer.appendChild(div);
     }
-    
-    function getAttribute(element, name, defaultValue) {
-        let value = element.getAttribute(name);
-        if (value == null) {
-            value = defaultValue;
-        }
-        return value;
+}
+function getElementAttribute(element, name, defaultValue) {
+    let value = element.getAttribute(name);
+    if (value == null) {
+        value = defaultValue;
     }
+    return value;
 }
 
 /* Queries support */
@@ -116,7 +141,7 @@ function getQueryValue(param, defaultValue) {
             }
         } else {
             // allow for boolean value true without "="
-            if ((defaultValue == false) && (defaultValue != "")) {
+            if (defaultValue == false) {
                 value = true;
             }
         }

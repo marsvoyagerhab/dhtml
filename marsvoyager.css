@@ -1,3 +1,5 @@
+/* not importing fonts here, see https://stackoverflow.com/questions/14676613/how-to-import-google-web-font-in-css-file */
+
 :root {
     --h1-top: 96px;
 
@@ -24,13 +26,11 @@
 }
 
 body {
-	width: 450px;
-	
     padding: 0px 0px 12px 0px; 
     color: #ACA39A; /* GENERATED CSS ROW */
     color: var(--text-color);
     background-color: rgb(3, 8, 30); /* GENERATED CSS ROW */
-    background-color: var(--background-color);
+    background-color: var(--background-color); /* #03081e */
     font-family: Quicksand, "Open Sans", sans-serif; /* GENERATED CSS ROW */
     font-family: var(--font-family-body);
     font-weight: 400; /* GENERATED CSS ROW */
@@ -50,6 +50,17 @@ h1 {
 }
 h2 {
     font-size: 16px;
+}
+
+span.Visitors {
+    vertical-align: middle;
+}
+
+a.Visitors img {
+    border-style: none;
+    vertical-align: middle;
+    width: 60px;
+    height: 15px;
 }
 
 /*  Links */
