@@ -1,23 +1,28 @@
 "use strict"; // don't allow hoisting or undeclared variables
 
-const DEBUGMAIN = (true && (location.href.indexOf("file:") == 0));
-
 function updatePage() {
-    let footer = document.getElementById("Footer");
-    let depth = getElementAttribute(footer, "data-depth", "");
-    let topic = getElementAttribute(footer, "data-topic", null);
-    let version = getElementAttribute(footer, "data-version", null);
-    let ownIcons = getElementAttribute(footer, "data-ownicons", false); //  for check of meta tags
-    let visitorsId = getElementAttribute(footer, "data-visitors", null);
+    const DEBUGMAIN = (true && (location.href.indexOf("file:") == 0));
+
+    const TITLE = "Mars Voyager on Creativity";
+    const FOOTER = document.getElementById("Footer");
+    
+    let depth = getElementAttribute(FOOTER, "data-depth", "");
+    let topic = getElementAttribute(FOOTER, "data-topic", null);
+    //let version = getElementAttribute(FOOTER, "data-version", null);
+    let ownIcons = getElementAttribute(FOOTER, "data-ownicons", false); //  for check of meta tags
+    let visitorsId = getElementAttribute(FOOTER, "data-visitors", null);
 
     if (DEBUGMAIN) {
-        let head = document.getElementsByTagName("head")[0];
+        const HEAD = document.getElementsByTagName("HEAD")[0];
         
         // check meta data
-        let metas = head.getElementsByTagName("meta");
+        let metas = HEAD.getElementsByTagName("META");
         for (let i = 0; i < metas.length; i++) {
             let meta = metas[i];
-            if ((meta.name == "apple-mobile-web-app-title") && (meta.content.indexOf(topic) < 0)) {
+                        
+            if ((meta.name == "title") && (meta.content.indexOf(document.title) < 0)) {
+                alert ("<meta>" + meta.name + " = " + meta.content);
+            } else if ((meta.name == "apple-mobile-web-app-title") && (meta.content.indexOf(topic) < 0)) {
                 alert ("<meta>" + meta.name + " = " + meta.content);
             } else if ((meta.name == "application-name") && (meta.content.indexOf(topic) < 0)) {
                 alert ("<meta>" + meta.name + " = " + meta.content);
@@ -42,14 +47,7 @@ function updatePage() {
         xhr.send();        
     }
     
-    let main = document.getElementById("Main");
-    if (main != null) {
-        let para = document.createElement("P");
-        para.innerHTML = "";
-        main.appendChild(para);
-    }
-    
-    if (footer != null) {
+    if (FOOTER != null) {
         if ((!DEBUGMAIN) && (visitorsId != null)) {
             // size 60%
             let name = "web counter"; // or hit counter
@@ -65,39 +63,38 @@ function updatePage() {
             img.alt = name;
         
             a.appendChild(img);
-            footer.appendChild(document.createTextNode("Visitors: "));
-            footer.appendChild(a);
+            FOOTER.appendChild(document.createTextNode("Visitors: "));
+            FOOTER.appendChild(a);
         }
         
         let div = document.createElement("DIV");
         
-        let title = "Mars Voyager on Creativity and DHTML";
-        
-        let txt = "";
         div.appendChild(document.createElement("HR"));
         
         let span = document.createElement("SPAN");
         if ((depth != null) && (depth != "")) {
             let a = document.createElement("A");
             a.href = depth + "index.html";
-            a.innerHTML = title;
+            a.innerHTML = TITLE;
             span.appendChild(a);
         } else {
-            txt = txt + title;
+            span.appendChild(document.createTextNode(TITLE));
         }
-        if (((topic != null) && (topic != "")) || ((version != null) && (version != ""))) {
-            txt = txt + " : ";
-        }
+        //if (((topic != null) && (topic != "")) || ((version != null) && (version != ""))) {
+            span.appendChild(document.createTextNode(" : "));
+        //}
         if ((topic != null) && (topic != "")) {
-            txt = txt + topic;
+            span.appendChild(document.createTextNode(topic));
         }
-        if ((version != null) && (version != "")) {
+        
+        //if ((version != null) && (version != "")) {
+            let small = document.createElement("SMALL");
             if ((topic != null) && (topic != "")) {
-                txt = txt + ", ";
+                small.appendChild(document.createTextNode(", "));
             }
-            txt = txt + "version " + version;
-        }
-        span.appendChild(document.createTextNode(txt));
+            small.appendChild(document.createTextNode(getISODate()));
+            span.appendChild(small);
+        //}
         div.appendChild(span);
         
         div.appendChild(document.createElement("BR"));
@@ -107,9 +104,10 @@ function updatePage() {
         a.innerHTML = "Submit an issue via GitHub";
         div.appendChild(a);
         
-        footer.appendChild(div);
+        FOOTER.appendChild(div);
     }
 }
+
 function getElementAttribute(element, name, defaultValue) {
     let value = element.getAttribute(name);
     if (value == null) {
@@ -117,6 +115,19 @@ function getElementAttribute(element, name, defaultValue) {
     }
     return value;
 }
+
+function getISODate() {
+    if (!Date.prototype.toISOString) {
+        // 02/08/2021 18:51:36
+        let dateTime = document.lastModified.split(" ");
+        let date = dateTime[0].split("/");
+        let time = dateTime[1].split(":");
+        return date[2] + "-" + date[0] + "-" + date[1] + "T" + time[0] + ":" + time[1];
+    }
+    // no seconds
+    return new Date(document.lastModified).toISOString().substring(0, 16) + "Z";
+}
+
 
 /* Queries support */
 
