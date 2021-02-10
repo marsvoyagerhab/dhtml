@@ -76,7 +76,7 @@
                 <li>Given are the width and height of the ellipse.</li>
                 <li>The length of the string (red) shall be equal to the width, i.e. the major axis (2*a).</li>
                 <li>The foci (F), at the equal distance (c) from the center, are found when the pen reaches the half height.</li>
-                <li>The eccentricity of the ellipse is c/a.</li>
+                <li>The eccentricity of the ellipse (&#x03b5;) is c/a.</li>
             </ul>
         
             <div>Wikipedia link</div>
@@ -90,7 +90,7 @@
         <script type="text/javascript" 
                 src="https://counter8.stat.ovh/private/counter.js?c=wr1rt91wtx7zmya71ge34829xpt4prsu&amp;down=async" async="true"></script>
          
-        <div id="Footer" data-depth="../" data-topic="Ellipse" data-version="1.0"></div>        
+        <div id="Footer" data-depth="../" data-topic="Ellipse"></div>        
 
 
         <script>//<![CDATA[
@@ -111,10 +111,12 @@
         // states
         let initState = -1;
         const S_AXES = (initState++);
+        const S_AXESPAUSE = (initState++);
         const S_STRING = (initState++);
         const S_FOCI = (initState++);
         const S_FOCIFOUND = (initState++);
         const S_ELLIPSE = (initState++);
+        const S_STRINGPAUSE = (initState++);
         const S_FINAL = (initState++);
         const S_FADE = (initState++);
 
@@ -122,37 +124,41 @@
         const DA = (2*Math.PI)/N;
         
         const ANIMTIME = 30; // 50, animation delay (ms)
-        let interval;
-        let running;
-        let state;
-        let n;
+        let m_interval;
+        let m_running;
+        let m_state;
+        let m_n;
 
         // center
         const CX = CANVAS.width/2;
         const CY = CANVAS.height/2;
         
         // ellipse
-        let e = 0.8;
-        let a = CANVAS.height/2 - 4;
-        let c = getEllipseC();
-        let b = getEllipseB();
+        let m_e = 0.8;
+        let m_a = CANVAS.height/2 - 4;
+        
+        let m_c = getEllipseC();
+        let m_b = getEllipseB();
+        
+        let m_penX = 0;
+        let m_penY = 0;        
         
         
         function start() {
-            running = true;
-            state = S_AXES;
-            n = 0;
-            interval = setInterval(draw, ANIMTIME);
+            m_running = true;
+            m_state = S_AXES;
+            m_n = 0;
+            m_interval = setInterval(draw, ANIMTIME);
         }
 
         function stopOrStart() {
-            clearInterval(interval);
-            running = (!running);
-            if (running) {
+            clearInterval(m_interval);
+            m_running = (!m_running);
+            if (m_running) {
                 draw();
-                interval = setInterval(draw, ANIMTIME);
+                m_interval = setInterval(draw, ANIMTIME);
             } else {
-                drawText(CANVAS.width/8, 2*FONTSIZE, "Paused", TEXTCOLOR);
+                drawTextCentered(CANVAS.width/8, 2*FONTSIZE, "Paused", TEXTCOLOR);
             }
         }
 
@@ -162,71 +168,89 @@
             
             drawAxes();
             
-            let time = n*ANIMTIME/1000;
+            let time = m_n*ANIMTIME/1000;
 
             let fn;
-            switch (state) {
+            switch (m_state) {
                 case S_AXES: {
                     fn = 1500/ANIMTIME;
-                    drawPen(0, 0);
+                    m_penX = 0;
+                    m_penY = 0;
+
+                    drawPen();
+                    break;
+                }
+                case S_AXESPAUSE: { // pause showing axes before showing string
+                    fn = 1000/ANIMTIME;
+
+                    drawPen();
                     break;
                 }
                 case S_STRING: { // straight string
                     fn = 1500/ANIMTIME;
-                    drawString(a, 0, 0);
-                    drawPen(0, 0);
+
+                    drawString(m_a);
+                    drawPen();
                     break;
                 }
                 case S_FOCI: { // find foci
                     fn = 3000/ANIMTIME;
-                    let penY = n*b/fn;
-                    let xp = Math.sqrt(Math.pow(a, 2) - Math.pow(penY, 2));
+                    m_penX = 0;
+                    m_penY = m_n*m_b/fn;
+                    let xp = Math.sqrt(Math.pow(m_a, 2) - Math.pow(m_penY, 2));
                     
-                    drawString(xp, 0, penY);
-                    drawPen(0, penY);
+                    drawString(xp);
+                    drawPen();
                     break;
                 }
                 case S_FOCIFOUND: {
-                    fn = 500/ANIMTIME;
-                    let penX = 0;
-                    let penY = b;
+                    fn = 1500/ANIMTIME;
+                    m_penX = 0;
+                    m_penY = m_b;
 
                     drawFoci();
-                    drawString(c, penX, penY);
-                    drawPen(penX, penY);
+                    drawString(m_c);
+                    drawPen();
                     break;
                 }
                 case S_ELLIPSE: { // draw ellipse
                     fn = N;
-                    let penX = getEllipseX(n*DA);
-                    let penY = getEllipseY(n*DA);
+                    m_penX = getEllipseX(m_n*DA);
+                    m_penY = getEllipseY(m_n*DA);
                     
                     drawFoci();
-                    drawEllipse(n);
-                    drawString(c, penX, penY);
-                    drawPen(penX, penY);
+                    drawEllipse(m_n);
+                    drawString(m_c);
+                    drawPen();
                     break;
                 }
-                case S_FINAL: { // hide string
-                    fn = 2000/ANIMTIME;
-                    let penX = getEllipseX(0);
-                    let penY = getEllipseY(0);
+                case S_STRINGPAUSE: { // pause with string
+                    fn = 700/ANIMTIME;
+                    m_penX = getEllipseX(0);
+                    m_penY = getEllipseY(0);
+
+                    drawFoci();
+                    drawEllipse(N);
+                    drawString(m_c);
+                    drawPen();
+                    break;
+                }
+                case S_FINAL: { // hidden string
+                    fn = 1000/ANIMTIME;
                     
                     drawFoci();
                     drawEllipse(N);
-                    drawPen(penX, penY);
+                    drawPen();
                     break;
                 }
                 case S_FADE: { // fade out and move pen to center
                     fn = 2000/ANIMTIME;
-                    let penX = getEllipseX(0);
-                    let penY = getEllipseY(0);
                     
                     // faded
                     drawFoci();
                     drawEllipse(N);
                     
-                    ctx.fillStyle = "rgba(255, 255, 255, " + (n/fn) + ")";
+                    ctx.fillStyle = "rgba(255, 255, 255, " + (m_n/fn) + ")";
                     ctx.fillRect(-CX, -CY, CANVAS.width, CANVAS.height);
                     
                     // not faded
@@ -234,33 +258,36 @@
                     ctx.lineWidth = LINEWIDTH;
             
                     // axes
-                    drawLine(-a, 0, a, 0);
-                    drawLine(0, -b, 0, b); 
+                    drawLine(-m_a, 0, m_a, 0);
+                    drawLine(0, -m_b, 0, m_b); 
+                    
+                    m_penX = 0;
+                    m_penY = m_b*(1 - ((m_n - 1)/fn));
                                
-                    drawPen(0, b*(1 - ((n - 1)/fn)));
+                    drawPen();
                     break;
                 }
             }
-            if (n >= fn) {
-                state++;
-                n = 0;
-                if (state > S_FADE) {
-                    state = 0;
+            if (m_n >= fn) {
+                m_state++;
+                m_n = 0;
+                if (m_state > S_FADE) {
+                    m_state = 0;
                     
-                    if (e > 0.8) {
-                        e = 0.8;
+                    if (m_e > 0.8) {
+                       m_e = 0.8;
                     } else {
-                        e = e - 0.2;
+                       m_e = m_e - 0.2;
                     }
-                    if (e < 0) {
-                        e = 0.9; // show a pretty flat ellipse
+                    if (m_e < 0) {
+                       m_e = 0.9; // show a pretty flat ellipse
                     }
-                    c = getEllipseC();
-                    b = getEllipseB();
+                    m_c = getEllipseC();
+                    m_b = getEllipseB();
                 }
             }
             
-            n++;
+            m_n++;
             
             ctx.translate(-CX, -CY);
         }
@@ -269,16 +296,16 @@
         /* ELLIPSE FUNCTIONS */
         
         function getEllipseX(angle) {
-            return a*Math.cos(angle + Math.PI/2);            
+            return m_a*Math.cos(angle + Math.PI/2);            
         }
         function getEllipseY(angle) {
-            return b*Math.sin(angle + Math.PI/2);            
+            return m_b*Math.sin(angle + Math.PI/2);            
         }
         function getEllipseC() {
-            return a*e;            
+            return m_a*m_e;            
         }
         function getEllipseB() {
-            return Math.sqrt(Math.pow(a, 2) - Math.pow(c, 2));            
+            return Math.sqrt(Math.pow(m_a, 2) - Math.pow(m_c, 2));            
         }
         
         
@@ -286,24 +313,28 @@
         
         function drawAxes() {
             // axis ends
-            drawMark(-a, 0);
-            drawMark(+a, 0);
-            drawMark(0, -b);
-            drawMark(0,  b);
+            drawMark(-m_a, 0);
+            drawMark(+m_a, 0);
+            drawMark(0, -m_b);
+            drawMark(0,  m_b);
 
             ctx.strokeStyle = TEXTCOLOR;
             ctx.lineWidth = LINEWIDTH;
             
             // axes
-            drawLine(-a, 0, a, 0);
-            drawLine(0, -b, 0, b);            
+            drawLine(-m_a, 0, m_a, 0);
+            drawLine(0, -m_b, 0, m_b);            
         }
         function drawFoci() {
-            drawMark(-c, 0);
-            drawMark(+c, 0);
+            drawMark(-m_c, 0);
+            drawMark(+m_c, 0);
 
-            drawText(-c, -10, "F", DARKTEXTCOLOR);
-            drawText(+c, -10, "F", DARKTEXTCOLOR);
+            drawTextCentered(-m_c, -10, "F", DARKTEXTCOLOR);
+            drawTextCentered(+m_c, -10, "F", DARKTEXTCOLOR);
+
+            // epsilon
+            // currently only one digit resolution
+            drawTextCentered(m_a + m_a/10, 2*m_b/3, "\u03b5 = " + Math.floor(m_e*10 + 0.5)/10, DARKTEXTCOLOR);
         }
         function drawEllipse(n) {
             ctx.strokeStyle = DARKTEXTCOLOR;
@@ -315,9 +346,9 @@
             ctx.stroke();
         }
         // xp is string end x-coordinate
-        function drawString(xp, penX, penY) {
+        function drawString(xp) {
             
-            let endL = a/6; // length of dangling string ends
+            let endL = m_a/6; // length of dangling string ends
 
             setShadow();
 
@@ -325,8 +356,8 @@
             ctx.lineWidth = 2*LINEWIDTH;
 
             // string
-            drawLine(-xp, 0, penX, penY);
-            drawLine(+xp, 0, penX, penY);
+            drawLine(-xp, 0, m_penX, m_penY);
+            drawLine(+xp, 0, m_penX, m_penY);
 
             // ends
             drawLine(-xp, endL,-xp, 0);
@@ -341,10 +372,10 @@
             
             clearShadow();
         }
-        function drawPen(x, y) {
+        function drawPen() {
             setShadow();
             
-            ctx.drawImage(PEN, x, y - PEN.height, PEN.width, PEN.height);
+            ctx.drawImage(PEN, m_penX, m_penY - PEN.height, PEN.width, PEN.height);
             
             // PEN has display:none, to avoid seeing it in corner at load
             // before getting PEN.height
@@ -357,8 +388,8 @@
             let scrollLeft = (window.pageXOffset || document.documentElement.scrollLeft);
             let scrollTop = (window.pageYOffset || document.documentElement.scrollTop);
 
-            PEN.style.left = (x + CX + (vp.left + scrollLeft)) + "px";
-            PEN.style.top  = (y + CY + (vp.top + scrollTop) - PEN.height) + "px";
+            PEN.style.left = (m_penX + CX + (vp.left + scrollLeft)) + "px";
+            PEN.style.top  = (m_penY + CY + (vp.top + scrollTop) - PEN.height) + "px";
             
             clearShadow();
         }
@@ -405,7 +436,7 @@
             ctx.arc(x, y, r, 0, 2*Math.PI);
             ctx.stroke();
         }
-        function drawText(x, y, txt, color) {
+        function drawTextCentered(x, y, txt, color) {
             ctx.fillStyle = color;
             ctx.font = FONTSIZE + "px Arial";
             ctx.textAlign = "center";
