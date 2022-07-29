@@ -250,7 +250,7 @@ function pointerDown(event) {
     }
 }
 function pointerMove(event) {
-    rect = OVERLAY.getBoundingClientRect();
+    const rect = OVERLAY.getBoundingClientRect();
     mc_mouse.x = event.clientX - OVERLAY.width/2 - rect.left;
     mc_mouse.y = event.clientY - OVERLAY.height/2 - rect.top;
 }
