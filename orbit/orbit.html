@@ -1,0 +1,1136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2022-07-09 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+        <title>Mars Voyager on Orbits</title>
+
+
+        <meta name="author" content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript, Orbits"/>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title" property="og:title" content="Mars Voyager on Orbits"/>
+        <!-- min 200 x 200 for Facebook -->
+        <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
+        <meta name="description" property="og:description" content="Explore Orbits"/>
+        <meta property="og:image:alt" content="Mars Voyager on Orbits"/>
+        <meta property="og:type" content="Science"/>
+
+        <meta name="apple-mobile-web-app-title" content="Mars Orbit"/>
+        <meta name="application-name"           content="Mars Orbit"/>
+        <meta name="msapplication-config"       content="../icons/browserconfig.xml?v=1"/>
+        <meta name="msapplication-TileColor"    content="#2b5797"/>
+        <meta name="theme-color"                content="#ffffff"/>
+
+
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&amp;display=swap"/> 
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
+        
+        <!-- https://realfavicongenerator.net -->
+        <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=1" sizes="180x180"/>
+        <link rel="icon"             href="../icons/favicon-32x32.png?v=1"    sizes="32x32" type="image/png"/>
+        <link rel="icon"             href="../icons/favicon-16x16.png?v=1"    sizes="16x16" type="image/png"/>
+        <link rel="manifest"         href="../icons/site.webmanifest?v=1"/>
+        <link rel="mask-icon"        href="../icons/safari-pinned-tab.svg?v=1" color="#5bbad5"/>
+        <link rel="shortcut icon"    href="favicon.ico?v=1"/>
+        
+        <style>
+h1 {
+    padding: 15px 0px;
+}
+div {
+    width: 400px;
+}
+div.parent {
+    position: relative;
+    height: 300px;
+}
+canvas {
+    position: absolute;
+    left: 0px;
+    top:  0px;
+    cursor: crosshair;
+}
+        </style>
+    </head>
+        
+    <body>
+        <h1>Mars Voyager on Orbits</h1>
+        
+        <div id="FullscreenDiv">
+            <div class="parent">
+                <canvas id="Canvas"  width="400" height="300"></canvas>
+                <canvas id="Overlay" width="400" height="300"></canvas>
+            </div>
+        </div>
+
+        <div>
+            <div><b>Create your orbit in two steps:</b></div>
+            <ol>
+                <li>Drag from a start point, in this way the speed for a circular orbit at that height is given.</li>
+                <li>Drag again for a new start point and start velocity.</li>
+            </ol>
+        </div>
+
+        <div id="Controls">
+            <div id="DebugDiv" style="visibility:hidden;">
+                <input id="Debug" type="checkbox">Debug</input>
+                <input id="Nudge" type="button" value="Nudge"/>
+            </div>
+
+            <div><input id="Circular" type="checkbox">Circular</input></div>
+            <div><input id="Constant" type="checkbox">Keep start speed constant</input></div>
+            <div><input id="Perpendicular" type="checkbox">Keep start speed perpendicular</input></div>
+            <div><input id="Restart" type="button" value="Restart"/></div>
+            <div><input id="Pause" type="checkbox">Pause</input></div>
+        </div>
+        <div><input id="Fullscreen" type="button" value="Fullscreen"/></div>
+<!--
+        <label for="Body">Optionally select a central body:</label>
+        <select id="Body"></select>
+        <div>
+            <input id="Scale1" type="button" value="Scale +"/>
+            <input id="Scale2" type="button" value="Scale -"/>
+        </div>
+        <div>
+            <textarea id="Info" rows="4" cols="50"></textarea>
+        </div>
+-->
+
+        <hr/>
+
+        <div>
+            <div><b>Wikipedia link</b></div>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Orbital_mechanics">Orbital mechanics</a></li>
+            </ul>
+            <div><b>Details</b></div>
+            <div>In step 1 the radius and speed of a circular orbit is determined by the user. Behind the scene this determines the mass of the center body (&mu;)</div>
+            <div>In step 2 the start point and velocity direction and magnitude give an orbit around the now known body.</div>
+        </div>
+
+        <div id="Footer" data-depth="../" data-topic="Orbit"></div>        
+
+<script>//<![CDATA[
+"use strict"; // don't allow hoisting or undeclared variables
+updatePage(); // init using parent script
+
+const debug = false;
+let debugIndex = -1;
+let debugNudge = 0;
+const DEBUG_INPUT = document.getElementById("Debug");
+DEBUG_INPUT.checked = false;
+if (debug) {
+    document.getElementById("DebugDiv").style = "visibility: visible;";
+    document.getElementById("Nudge").addEventListener('click', function() {
+        debugNudge++;
+    });
+}
+
+const BODIES = [
+    {
+        name: "No scale", 
+        mu: 1,
+        radius: 1,
+        period: 1,
+    },
+    {
+        name: "Sun", 
+        mu: 1,
+        radius: 1,
+        period: 1,
+    },
+    {
+        name: "Earth", 
+        mu: 398601, // km^3/s^2
+        radius: 6000, // km
+        period: 1,
+    },
+    {
+        name: "Moon", 
+        mu: 1,
+        radius: 1,
+        period: 1,
+    },
+];
+const ZERO2D = { x:0, y:0 };
+
+const CANVAS = document.getElementById("Canvas");
+const CTX = CANVAS.getContext("2d");
+
+const OVERLAY = document.getElementById("Overlay");
+const CTX_OVERLAY = OVERLAY.getContext("2d");
+
+CTX.translate(CANVAS.width/2, CANVAS.height/2);
+CTX_OVERLAY.translate(OVERLAY.width/2, OVERLAY.height/2);
+
+const CIRCULAR = document.getElementById("Circular");
+const CONSTANT = document.getElementById("Constant");
+const PERPENDICULAR = document.getElementById("Perpendicular");
+const PAUSE = document.getElementById("Pause");
+/*
+const BODY = document.getElementById("Body");
+const INFO = document.getElementById("Info");
+
+for (let i = 0; i < BODIES.length; i++) {
+    const option = document.createElement("OPTION");
+    option.value = i;
+    option.innerText = BODIES[i].name;
+    BODY.appendChild(option);
+}
+BODY.addEventListener('click', function(event) {
+    alert(BODIES[BODY.value].name);
+});
+*/
+
+const DARKTEXTCOLOR = "#03081e"; // CSS background
+const TEXTCOLOR = "#ACA39A"; // same as in CSS
+const LINEWIDTH = 1;
+const FONTSIZE = 18;
+
+const N = 200;
+const DA = (2*Math.PI)/N;
+
+const ANIMTIME = 30; // 50, animation delay (ms)
+let m_interval;
+let m_running = false;
+let m_step = 0;
+const DT_PER_STEP = 10;
+
+let mc_bodyR;
+let m_mu = 1; // used for: v_circular = sqrt(mu/r)
+
+const mc_mouse = newVector();
+const mc_startPos = newVector();
+const mc_startVelocity = newVector();
+
+const mc_circularStart = newVector();
+const mc_circularVelocity = newVector();
+
+let m_startAngle = 0;
+let m_x = 0;
+let m_r0 = 1;
+let m_alpha0 = 1;
+
+let m_waitForNextClick = false;
+
+const WIDTH = CANVAS.width;
+const HEIGHT = CANVAS.height;
+let m_fullscreen = false;
+initGraph();
+
+OVERLAY.addEventListener('mousemove', function(event) {
+    mc_mouse.x = event.offsetX - OVERLAY.width/2;
+    mc_mouse.y = event.offsetY - OVERLAY.height/2;
+});
+
+OVERLAY.addEventListener('mousedown', function(event) {
+    clearInterval(m_interval);
+    m_running = false;
+    m_step = 0;
+    m_x = 0;
+    
+    if (!m_waitForNextClick) {
+        mc_startPos.x = event.offsetX - OVERLAY.width/2;
+        mc_startPos.y = event.offsetY - OVERLAY.height/2;
+
+        m_startAngle = Math.atan2(mc_startPos.y, mc_startPos.x);
+
+        drawMark(mc_startPos.x, mc_startPos.y);
+        m_interval = setInterval(draw, ANIMTIME);
+    }
+});
+
+OVERLAY.addEventListener('mouseup', function(event) {
+    dimCanvas();
+    drawBody();
+    drawMark(mc_startPos.x, mc_startPos.y);
+    m_waitForNextClick = false;
+
+    if (CIRCULAR.checked) {
+        if (length(mc_startVelocity) > 1) {
+            m_running = true;
+            
+            m_mu = length(mc_startPos)*Math.pow(length(mc_startVelocity), 2);
+            
+            clone(mc_startPos, mc_circularStart);
+            clone(mc_startVelocity, mc_circularVelocity);
+            
+            CIRCULAR.checked = false;
+            CIRCULAR.disabled = false;
+            
+            CONSTANT.disabled = false;
+            
+            PERPENDICULAR.checked = false;
+            PERPENDICULAR.disabled = false;
+        } else {
+            m_waitForNextClick = true;
+        }
+    }
+
+    // circular orbit
+    CTX.strokeStyle = "red";
+    drawCircle(ZERO2D, length(mc_circularStart));
+    drawRelativeLine(mc_circularStart, mc_circularVelocity);
+    drawMark(mc_circularStart.x, mc_circularStart.y);
+
+    if (!CIRCULAR.checked) {
+        m_running = true;
+        
+        printInitialConditions();
+
+        /*
+        1
+        mixes apo with peri
+        3634.5739777861168 posX=97 posY=14, velX=0.14284970606061237 velY=-0.9897443919913851
+        41145.83026261593 posX=105 posY=-85, velX=7.550378744015575 velY=9.326938448489827
+        
+        2
+        ray from peri:
+        86853.57750259916 pos=x: -16, y: -108, vel=x: 0.6651424346714004, y: -0.7467165068480821
+        
+        3
+        doesn't reach apo
+        41143.361311917935 pos=x: -64, y: -47, vel=x: 18, y: 13 
+        
+        4
+        oveshoots peri
+        41143.361311917935 pos=x: 28, y: 105, vel=x: 0.2102469486654698, y: 0.9776483112944342
+        */
+        if (debug && DEBUG_INPUT.checked) {
+            if (debugNudge > 0) {
+            } else {
+                debugIndex++;
+            }
+            console.log("Debug switch " + debugIndex);
+            switch (debugIndex) {
+                case 0:
+                    m_mu = 3634.5739777861168;
+                    mc_startPos.x = 97;
+                    mc_startPos.y = 14;
+                    mc_startVelocity.x = 0.14284970606061237;
+                    mc_startVelocity.y = -0.9897443919913851;
+                    break;
+                case 1:            
+                    m_mu = 41145.83;
+                    mc_startPos.x = 105;
+                    mc_startPos.y = -85;
+                    mc_startVelocity.x = 7.550378744015575;
+                    mc_startVelocity.y = 9.326938448489827;
+                    break;
+                case 2:
+                    m_mu = 86853.57750259916;
+                    mc_startPos.x = -16;
+                    mc_startPos.y = -108;
+                    mc_startVelocity.x = 0.6651424346714004;
+                    mc_startVelocity.y = -0.7467165068480821;
+                    break;
+                case 3:
+                    m_mu = 41143.361311917935;
+                    mc_startPos.x = -64;
+                    mc_startPos.y = -47;
+                    mc_startVelocity.x = 18;
+                    mc_startVelocity.y = 13;
+                    break;
+                default:
+                    m_mu = 41143.361311917935;
+                    mc_startPos.x = 28;
+                    mc_startPos.y = 105;
+                    mc_startVelocity.x = 0.2102469486654698;
+                    mc_startVelocity.y = 0.9776483112944342;
+                    
+                    debugIndex = -1;
+            }
+            if (debugNudge > 0) {
+                mc_startVelocity.y = mc_startVelocity.y*(1 + 1e-3*debugNudge);
+                printInitialConditions();
+            }
+        }
+
+        // the orbit
+        // p 50, (32)
+        m_r0 = length(mc_startPos);
+        const c = crossZ(mc_startPos, mc_startVelocity);    
+        
+        const pos = newVector();
+        const vel = newVector();        
+        const temp = newVector();
+
+        let h, a, e, p;
+        let phi0, da;
+        
+        let changeMu = false;
+        let muChanged = false;
+        let max = 100;
+        
+        do {
+            m_alpha0 = 2/m_r0 - dot(mc_startVelocity, mc_startVelocity)/m_mu;
+
+            h = dot(mc_startVelocity, mc_startVelocity)/2 - m_mu/m_r0;
+            a = -m_mu/(2*h);
+            e = Math.sqrt(Math.abs(1 - Math.pow(c, 2)/(m_mu*a))); // abs added to avoid NaN for some circles
+        
+            p = Math.pow(c, 2)/m_mu;
+             
+            const outGoing = ((dot(mc_startPos, mc_startVelocity) >= 0) ? true : false);
+            //const direct = ((crossZ(mc_startPos, mc_startVelocity) > 0) ? true : false); // vs retrograde
+            phi0 = Math.acos((p/m_r0 - 1)/e)*(outGoing ? 1 : -1);        
+            if (isNaN(phi0)) {
+                if (debug) {
+                    console.log("phi0 " + phi0);
+                }
+                phi0 = 0;
+            }
+        
+            da = 2*Math.PI/N;
+            if (!(e < 1)) { // hyperbolic
+                da = (Math.acos((p/CANVAS.width - 1)/e) - phi0)/N; // using view size
+                //da = (Math.acos(1/e) - phi0)/N; // doesn't work well for e near 1
+            }
+            
+            // avoid getting peri at apo distance
+            if (e < 1) { // elliptic
+                const phi = 0; // 0 = peri
+                const dPhi = phi - phi0;
+
+                const r = setPosVel(phi, dPhi, p, e, pos, vel, temp);
+                
+                if (Math.abs(r - length(pos)) > 1) {                    
+                    changeMu = true;
+                    muChanged = true;
+                    m_mu = m_mu*0.99999;
+                } else {
+                    changeMu = false;
+                }
+            }
+            max--;
+        } while (changeMu && (max > 0));
+
+        if (muChanged) {
+            console.log(max + " mu CHANGED");    
+            printInitialConditions();
+        }
+        
+        let T = 2*Math.PI*Math.sqrt(Math.pow(Math.abs(a), 3)/m_mu);
+        
+        const eccFixed = 3;
+        const eccParable = 1;
+        let ePrint = e.toFixed(eccFixed);
+        if ((e < 1) && (ePrint == eccParable.toFixed(eccFixed))) { // elliptic
+            ePrint = (1 - Math.pow(10, -eccFixed));
+        }
+        drawTextCentered(0, CANVAS.height/2 - 10, "\u03B5 = " + ePrint + (e < 1 ? (", T = " + (T*100/(DT_PER_STEP*ANIMTIME)).toFixed(2)) : ""), "blue");
+        
+        const posPrev = newVector();
+        const velPrev = newVector();
+        const ctrl = newVector();
+
+        clone(mc_startPos, posPrev);
+        clone(mc_startVelocity, velPrev);
+
+        CTX.strokeStyle = "black";
+        CTX.beginPath();
+        moveTo(mc_startPos);
+        let cpuTime = Date.now();
+        
+        for (let i = 1; i <= N; i++) {
+            const dPhi = i*da;
+            let phi = phi0 + dPhi;
+        
+            setPosVel(phi, dPhi, p, e, pos, vel, temp);
+
+            if (true) {
+                //CTX.beginPath();
+                //moveTo(posPrev);
+                getIntersection(posPrev, velPrev, pos, vel, ctrl, phi, a*(1 + e), a*(1 - e));
+                CTX.quadraticCurveTo(ctrl.x, ctrl.y, pos.x, pos.y);
+                //CTX.stroke();
+            
+                //CTX.strokeStyle = "green";
+                //drawLineVector(pos, posPrev);
+                //drawRelativeLine(pos, vel);
+
+                //resetStyle();
+            } else {
+                drawLineVector(pos, posPrev);
+            }
+        
+            clone(pos, posPrev);
+            clone(vel, velPrev);
+        }
+        if (debug) {
+            console.log((Date.now() - cpuTime) + " ms");
+        }
+        CTX.stroke();
+        
+        if (false) {
+            // alternative
+            // p 42, 50
+            const P = plus(mult(-m_mu/m_r0, mc_startPos), crossZflat(c, mc_startVelocity));
+            const Pn = mult(1, norm(P));
+            const Qn = crossZflat(((c > 0) ? 1 : -1), Pn);
+        
+            const mup = Math.sqrt(m_mu/p);
+
+            //const e1 = length(P)/m_mu; // alternative eccentricity
+            //console.log(e1);
+
+            CTX.strokeStyle = "blue";
+            drawLineVector(ZERO2D, mult(100, Pn));
+            CTX.strokeStyle = "red";
+            drawLineVector(ZERO2D, mult(100, Qn));
+        
+            CTX.strokeStyle = "green";
+            
+            CTX.beginPath();
+            moveTo(mc_startPos);
+            clone(mc_startPos, posPrev);
+            clone(mc_startVelocity, velPrev);
+            cpuTime = Date.now();
+            for (let i = 1; i <= N; i++) {
+                const dPhi = i*da;
+                const phi = phi0 + dPhi;
+
+                const r = p/(1 + e*Math.cos(phi));
+            
+                // p 42, 59
+                mult(r*Math.cos(phi), Pn, pos);
+                mult(r*Math.sin(phi), Qn, temp);
+                plus(pos, temp, pos);
+
+                // I changed sign on vel (!)
+                mult(mup*Math.sin(phi), Pn, vel);
+                mult(-mup*(e + Math.cos(phi)), Qn, temp);
+                plus(vel, temp, vel);
+
+                //drawRelativeLine(pos, vel);
+
+                getIntersection(posPrev, velPrev, pos, vel, ctrl, phi, a*(1 + e), a*(1 - e));
+                
+                //CTX.beginPath();
+                //moveTo(posPrev);
+                CTX.quadraticCurveTo(ctrl.x, ctrl.y, pos.x, pos.y);
+                //CTX.lineTo(pos.x, pos.y);
+                //CTX.stroke();
+                //drawCircle(ctrl, 10);
+                //drawCircle(pos, 5);
+                
+                clone(pos, posPrev);
+                clone(vel, velPrev);
+            }
+            if (debug) {
+                console.log((Date.now() - cpuTime) + "ms");
+            }
+            CTX.stroke();
+        }
+        
+        CTX.strokeStyle = "red";
+        drawRelativeLine(mc_startPos, mc_startVelocity);
+        
+        m_x = 0;
+    }
+});
+
+CIRCULAR.addEventListener('change', function(event) {
+    m_step = 0;
+    if (CIRCULAR.checked) {
+        initGraph();
+    }
+});
+
+document.getElementById("Restart").addEventListener('click', function() {
+    m_x = 0;
+    m_step = 0;
+});
+
+/*
+document.getElementById("Scale1").addEventListener('click', function() {
+});
+document.getElementById("Scale2").addEventListener('click', function() {
+});
+*/
+
+document.getElementById("Fullscreen").addEventListener('click', function() {
+    openFullscreen(document.getElementById("FullscreenDiv"));
+});
+document.addEventListener('fullscreenchange', function(event) {
+    if (m_fullscreen) {
+        closeFullscreen();
+    } else {
+        m_fullscreen = true;        
+    }
+});
+window.matchMedia("(orientation: portrait)").addEventListener("change", function(event) {
+    // https://dev.to/smpnjn/how-to-detect-device-orientation-with-javascript-29e5
+    //
+    // alternative:
+    // https://www.codegrepper.com/code-examples/javascript/detect+screen+rotation+javascript
+    // window.addEventListener("orientationchange", function(event) {
+    //      console.log("the orientation of the device is now " + event.target.screen.orientation.angle);
+    if (m_fullscreen) {
+        setFullscreenScale();
+        if (event.matches) {
+            // Portrait mode
+        } else {
+            // Landscape
+        }
+    }
+});
+
+function setPosVel(phi, dPhi, p, e, pos, vel, temp) {
+    const r = p/(1 + e*Math.cos(phi));
+
+    // p 65
+    const f = 1 - r*(1 - Math.cos(dPhi))/p;
+    const g = (r*m_r0)*Math.sin(dPhi)/Math.sqrt(m_mu*p);
+        
+    const fd = Math.sqrt(m_mu/p)*((1 - Math.cos(dPhi))/Math.sin(dPhi))*((1 - Math.cos(dPhi))/p - 1/m_r0 - 1/r);
+    const gd = 1 - m_r0*(1 - Math.cos(dPhi))/p;
+
+    // 5.28
+    mult(f, mc_startPos, pos);
+    mult(g, mc_startVelocity, temp);
+    plus(pos, temp, pos);
+
+    mult(fd, mc_startPos, vel);
+    mult(gd, mc_startVelocity, temp);
+    plus(vel, temp, vel);
+    
+    return r;
+}
+function setFromTime(dt, posTarget, velTarget) {
+    // p 76
+    let d = 1;
+    let n = 20;
+    do {
+        const z1 = m_alpha0*Math.pow(m_x, 2);
+        const F = Math.sqrt(m_mu)*dt - (dot(mc_startPos, mc_startVelocity)*Math.pow(m_x, 2)*C(z1)/Math.sqrt(m_mu) + Math.pow(m_x, 3)*S(z1)*(1 - m_r0*m_alpha0) + m_r0*m_x);
+        const dF = -dot(mc_startPos, mc_startVelocity)*(m_x - z1*m_x*S(z1))/Math.sqrt(m_mu) - (1 - m_r0*m_alpha0)*Math.pow(m_x, 2)*C(z1) - m_r0;
+        d = F/dF;
+        m_x = m_x - d;
+        n--;
+    } while ((Math.abs(d) > 1e-4) && (n > 0));
+    //console.log(n + " " + m_x);
+    //console.log(n);
+
+    const f = 1 - Math.pow(m_x, 2)*C(m_alpha0*Math.pow(m_x, 2))/m_r0;
+    const g = dt - Math.pow(m_x, 3)*S(m_alpha0*Math.pow(m_x, 2))/Math.sqrt(m_mu);
+
+    posTarget.x = f*mc_startPos.x + g*mc_startVelocity.x;
+    posTarget.y = f*mc_startPos.y + g*mc_startVelocity.y;
+    
+    const r = length(posTarget);
+
+    const fp = Math.sqrt(m_mu)*(m_alpha0*Math.pow(m_x, 3)*S(m_alpha0*Math.pow(m_x, 2)) - m_x)/(r*m_r0);
+    const gp = 1 - Math.pow(m_x, 2)*C(m_alpha0*Math.pow(m_x, 2))/r;
+
+    velTarget.x = fp*mc_startPos.x + gp*mc_startVelocity.x;
+    velTarget.y = fp*mc_startPos.y + gp*mc_startVelocity.y;
+}
+
+function drawBody() {
+    CTX.fillStyle = "gray";
+    fillCircle(0, 0, mc_bodyR);    
+}
+
+
+function initGraph() {
+    clearInterval(m_interval);
+    m_running = false;
+
+    CIRCULAR.checked = true;
+    CIRCULAR.disabled = true;
+
+    CONSTANT.checked = false;
+    CONSTANT.disabled = true;
+
+    PERPENDICULAR.checked = true;
+    PERPENDICULAR.disabled = true;
+
+    PAUSE.checked = false;
+
+    mc_bodyR = CANVAS.height/20;
+    
+    fillCanvas();
+    drawBody();
+}
+function draw() {
+    if (PAUSE.checked) {
+        return;
+    }
+    clearCanvas(CTX_OVERLAY);
+        
+    if (m_running) {
+        m_step++;
+        if (!CIRCULAR.checked) {            
+            const dt = m_step/DT_PER_STEP;
+            
+            const pos = newVector();
+            const vel = newVector();
+            
+            setFromTime(dt, pos, vel);
+            
+            // satellite
+            CTX_OVERLAY.strokeStyle = "black";
+            drawCircle(pos, mc_bodyR/5, CTX_OVERLAY)
+
+            // velocity bar
+            drawRelativeLine(pos, vel, CTX_OVERLAY);
+            
+            drawTextCentered(0, -OVERLAY.height/2 + 15, "v = " + length(vel).toFixed(3), "blue", CTX_OVERLAY);
+        }
+    } else {
+        let velocity = minus(mc_mouse, mc_startPos);
+        if (length(velocity) < 1) {
+            velocity = norm(mc_circularVelocity);
+        }
+        if ((!CIRCULAR.checked) && (CONSTANT.checked) && (length(velocity) > 1e-3)) {
+            velocity = mult(length(mc_circularVelocity)/length(velocity), velocity);
+        }
+        if (CIRCULAR.checked || PERPENDICULAR.checked) {
+            let perpAngle;
+            if (Math.sin(signedAngle(m_startAngle, Math.atan2(mc_mouse.y, mc_mouse.x))) > 0) {
+                perpAngle = m_startAngle + Math.PI/2;
+            } else {
+                perpAngle = m_startAngle - Math.PI/2;
+            }
+            const speed = length(velocity);
+
+            mc_startVelocity.x = speed*Math.cos(perpAngle);
+            mc_startVelocity.y = speed*Math.sin(perpAngle);
+        } else {
+            mc_startVelocity.x = velocity.x;
+            mc_startVelocity.y = velocity.y;
+            
+            // show eccentricity
+            
+            m_r0 = length(mc_startPos);
+            m_alpha0 = 2/m_r0 - dot(mc_startVelocity, mc_startVelocity)/m_mu;
+
+            const c = crossZ(mc_startPos, mc_startVelocity);    
+            const h = dot(mc_startVelocity, mc_startVelocity)/2 - m_mu/m_r0;
+            const a = -m_mu/(2*h);
+            const e = Math.sqrt(Math.abs(1 - Math.pow(c, 2)/(m_mu*a))); // abs added to avoid NaN for some circles
+        
+            const p = Math.pow(c, 2)/m_mu;
+        
+            let T = 2*Math.PI*Math.sqrt(Math.pow(Math.abs(a), 3)/m_mu);
+        
+            let ePrint = e.toFixed(3);
+            if ((e < 1) && (ePrint == "1.000")) { // elliptic
+                ePrint = 0.999;
+            }
+            drawTextCentered(0, CANVAS.height/2 - 10, "\u03B5 = " + ePrint + (e < 1 ? (", T = " + (T*100/(DT_PER_STEP*ANIMTIME)).toFixed(2)) : ""), "blue", CTX_OVERLAY);
+        }
+        
+        // dragged velocity bar
+        drawRelativeLine(mc_startPos, mc_startVelocity, CTX_OVERLAY);
+    }
+}
+
+function S(z) {
+    //return 1/factorial(3) - z/factorial(5) + Math.pow(z, 2)/factorial(7) - Math.pow(z, 3)/factorial(9) + Math.pow(z, 4)/factorial(11);
+    if (Math.abs(z) < 1e-6) {
+        return 1/factorial(3);
+    }
+    if (z > 0) {
+        const sq = Math.sqrt(z);
+        return (sq - Math.sin(sq))/Math.pow(sq, 3);
+    }
+    const sq2 = Math.sqrt(-z);
+    return (Math.sinh(sq2) - sq2)/Math.pow(sq2, 3);
+}
+function C(z) {
+    //return 1/factorial(2) - z/factorial(4) + Math.pow(z, 2)/factorial(6) - Math.pow(z, 3)/factorial(8) + Math.pow(z, 4)/factorial(10);
+    if (Math.abs(z) < 1e-6) {
+        return 1/factorial(2);
+    }
+    if (z > 0) {
+        const sq = Math.sqrt(z);
+        return (1 - Math.cos(sq))/z;
+    }
+    const sq2 = Math.sqrt(-z);
+    return (Math.cosh(sq2) - 1)/(-z);
+}
+function factorial(n) {
+    let f = n;
+    n--;
+    while (n > 0) {
+        f = f * n;
+        n--;
+    }
+    return f;
+}
+
+
+/* 2D VECTORS */
+
+function dot(a, b) {
+    return a.x*b.x + a.y*b.y;
+}
+function crossZ(a, b) {
+    return a.x*b.y - a.y*b.x; // z:
+}
+function dotAngle(a, b) {
+    return Math.acos(dot(a, b)/(length(a)*length(b)));
+}
+function length(a) {
+    return Math.sqrt(a.x*a.x + a.y*a.y);
+}
+function norm(a) {
+    return mult(1/length(a), a);
+}
+// https://stackoverflow.com/questions/1878907/how-can-i-find-the-difference-between-two-angles
+function signedAngle(start, target) {
+    return Math.atan2(Math.sin(target - start), Math.cos(target - start));
+}
+
+function newVector() {
+    return clone(ZERO2D);
+}
+function clone(a, target) {
+    return getTarget(a.x, a.y, target);
+}
+function crossZflat(z, a, target) {
+    return getTarget(a.y*z, -a.x*z, target);
+}
+function mult(c, a, target) {
+    return getTarget(c*a.x, c*a.y, target);
+}
+function minus(a, b, target) {
+    return getTarget(a.x - b.x, a.y - b.y, target);
+}
+function plus(a, b, target) {
+    return getTarget(a.x + b.x, a.y + b.y, target);
+}
+function rotate(a, angle, target) {
+    const x = a.x*Math.cos(angle) - a.y*Math.sin(angle);
+    const y = a.x*Math.sin(angle) + a.y*Math.cos(angle);
+    return getTarget(x, y, target);
+}
+function getTarget(x, y, target) {
+    if (target == undefined) {
+        return { x: x, y: y };
+    }
+    target.x = x;
+    target.y = y;
+    return target;
+}
+
+function getIntersection(r1, d1, r3, d3, target, phi, r_apo, r_peri) {
+    let acc = 1e-4;
+    const r = length(plus(r1, r3))/2;
+    if (Math.cos(phi) > (1 - acc)) {
+        const turn = mult(r_peri, norm(plus(r1, r3)));
+        if (debug) {
+            console.log("P " + phi/Math.PI + "  " + Math.cos(phi) + " " + r + " " + r_peri);
+        }
+        CTX.lineTo(turn.x, turn.y);
+        target.x = (turn.x + r3.x)/2;
+        target.y = (turn.y + r3.y)/2;
+        return target;
+    }
+    if (Math.cos(phi) < (-1 + acc)) {
+        // gives edge ray in orbit
+        //const turn = mult(r_apo, norm(plus(r1, r3)));
+        if (debug) {
+            console.log("A " + phi/Math.PI + "  " + Math.cos(phi) + " " + r + " " + r_apo);
+        }
+        //return getTarget(turn.x, turn.y, target);
+    }
+    if (dot(d1, d3) < acc) {
+        if (Math.abs(r) > (r_peri + (r_peri + r_apo)/4)) {
+            if (debug) {
+                console.log("1a " + phi/Math.PI + "  " + dot(d1, d3) + " " + r + " " + (r_peri + r_apo)/2);
+            }
+            const turn = mult(r_apo, norm(plus(r1, r3)));
+            CTX.lineTo(turn.x, turn.y);
+            target.x = (turn.x + r3.x)/2;
+            target.y = (turn.y + r3.y)/2;
+            return target;
+        } else {
+            const turn = mult(r_peri, norm(plus(r1, r3)));
+            if (debug) {
+                console.log("2p " + phi/Math.PI + "  " + dot(d1, d3));
+            }
+            return getTarget(turn.x, turn.y, target);
+        }
+    }
+    
+    acc = 1e-3;
+    const d = d1.x*d3.y - d1.y*d3.x;
+    if (Math.abs(d) < acc) {
+        const turn = mult(0.5, plus(r1, r3));
+        lineTo(turn);
+        if (debug) {
+            console.log("3 " + phi/Math.PI + " " + d);
+        }
+        return getTarget(turn.x, turn.y, target);
+    }
+    const r2 = plus(r1, d1);
+    const r4 = plus(r3, d3);
+    // https://en.wikipedia.org/wiki/Line%E2%80%93line_intersection
+    const x = ((r1.x*r2.y - r1.y*r2.x)*(r3.x - r4.x) - (r1.x - r2.x)*(r3.x*r4.y - r3.y*r4.x))/d;
+    const y = ((r1.x*r2.y - r1.y*r2.x)*(r3.y - r4.y) - (r1.y - r2.y)*(r3.x*r4.y - r3.y*r4.x))/d;
+    //console.log(phi/Math.PI  + " 4");
+    return getTarget(x, y, target);
+}
+
+
+/* STATE GRAPHICS */
+
+/*
+function drawAxes() {
+    // axis ends
+    drawMark(-m_a, 0);
+    drawMark(+m_a, 0);
+    drawMark(0, -m_b);
+    drawMark(0,  m_b);
+
+    ctx.strokeStyle = TEXTCOLOR;
+    ctx.lineWidth = LINEWIDTH;
+    
+    // axes
+    drawLine(-m_a, 0, m_a, 0);
+    drawLine(0, -m_b, 0, m_b);
+    ctx.lineWidth = 1;
+}
+function drawFoci() {
+    drawMark(-m_c, 0);
+    drawMark(+m_c, 0);
+
+    drawTextCentered(-m_c, -10, "F", DARKTEXTCOLOR);
+    drawTextCentered(+m_c, -10, "F", DARKTEXTCOLOR);
+
+    // epsilon
+    // currently only one digit resolution
+    drawTextCentered(m_a + m_a/10, 2*m_b/3, "\u03B5 = " + Math.floor(m_e*10 + 0.5)/10, DARKTEXTCOLOR);
+}
+function drawEllipse(n) {
+    ctx.strokeStyle = DARKTEXTCOLOR;
+    ctx.beginPath();
+    ctx.moveTo(getEllipseX(0), getEllipseY(0));
+    for (let i = 1; i <= n; i++) {
+        ctx.lineTo(getEllipseX(i*DA), getEllipseY(i*DA));
+    }
+    ctx.stroke();
+}
+*/
+
+
+/* SUPPORTING GRAPHICS */
+
+function resetStyle(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.strokeStyle = "black";
+    ctx.lineWidth = LINEWIDTH;
+    ctx.shadowColor = "rgba(0,0,0,0)";
+    ctx.fillStyle = "white";
+}
+
+function clearCanvas(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.clearRect(-CANVAS.width/2, -CANVAS.height/2, CANVAS.width, CANVAS.height);
+}
+function fillCanvas(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.shadowColor = "rgba(0,0,0,0)";
+    ctx.fillStyle = "white";
+    ctx.fillRect(-CANVAS.width/2, -CANVAS.height/2, CANVAS.width, CANVAS.height);
+    
+    resetStyle(ctx);
+}
+function dimCanvas(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.fillStyle = "rgba(255, 255, 255, 1)"; // 0.45
+    ctx.fillRect(-CANVAS.width/2, -CANVAS.height/2, CANVAS.width, CANVAS.height);
+}
+function fillRect(x, y, w, h, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.fillRect(x, y, w, h);
+}
+function setShadow(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.shadowColor = TEXTCOLOR;
+    ctx.shadowOffsetX = 2*LINEWIDTH;
+    ctx.shadowOffsetY = 2*LINEWIDTH;
+    ctx.shadowBlur = 2*LINEWIDTH;
+}
+function clearShadow(ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.shadowColor = "rgba(0,0,0,0)";
+}
+function moveTo(a, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.moveTo(a.x, a.y);
+}
+function lineTo(a, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.lineTo(a.x, a.y);
+}
+function drawLine(x1, y1, x2, y2, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+}
+function drawLineVector(a, b, ctx) {
+    drawLine(a.x, a.y, b.x, b.y, ctx);
+}
+function drawRelativeLine(a, da, ctx) {
+    drawLineVector(a, plus(a, da), ctx);
+}
+function drawMark(x, y, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.strokeStyle = TEXTCOLOR;
+    ctx.lineWidth = 3*LINEWIDTH;
+
+    const s = 8;
+
+    ctx.beginPath();
+    ctx.moveTo(x - s, y);
+    ctx.lineTo(x + s, y);
+    ctx.moveTo(x, y - s);
+    ctx.lineTo(x, y + s);
+    ctx.stroke();
+
+    resetStyle(ctx);
+}
+function drawCircle(a, r, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.beginPath();
+    ctx.arc(a.x, a.y, r, 0, 2*Math.PI);
+    ctx.stroke();
+}
+function fillCircle(x, y, r, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, 2*Math.PI);
+    ctx.stroke();
+    ctx.fill();
+}
+function drawTextCentered(x, y, txt, color, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.font = FONTSIZE + "px Arial";
+
+    ctx.fillStyle = "white";
+    const width = ctx.measureText(txt).width*3; // allow for wider previous text
+    ctx.fillRect(x - width/2, y - FONTSIZE, width, FONTSIZE*1.1);
+
+    ctx.fillStyle = color;
+    ctx.textAlign = "center";
+    ctx.fillText(txt, x, y);
+
+    resetStyle(ctx);
+}
+function toString(a) {
+    return "x: " + a.x + ", y: " + a.y;
+}
+function printInitialConditions() {
+    console.log(m_mu + " pos=" + toString(mc_startPos) + ", vel=" + toString(mc_startVelocity));    
+}
+
+/* SUPPORTING FUNCTIONS */
+
+// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
+function openFullscreen(elem) {
+    if (elem.requestFullscreen) {
+        elem.requestFullscreen();
+    } else if (elem.webkitRequestFullscreen) { // Safari
+        elem.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { // IE11
+        elem.msRequestFullscreen();
+    }
+    setFullscreenScale();
+}
+function closeFullscreen() {
+    if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { /* Safari */
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { /* IE11 */
+            document.msExitFullscreen();
+        }
+    }
+    m_fullscreen = false;
+
+    const width = window.screen.availWidth;
+    const height = window.screen.availHeight; // - document.getElementById("Controls").clientHeight;
+
+    // reset the current fullscreen origin
+    CTX.translate(-width/2, -height/2);
+    CTX_OVERLAY.translate(-width/2, -height/2);
+
+    CANVAS.width = WIDTH;
+    CANVAS.height = HEIGHT;
+    OVERLAY.width = WIDTH;
+    OVERLAY.height = HEIGHT;
+
+    CTX.translate(WIDTH/2, HEIGHT/2);
+    CTX_OVERLAY.translate(WIDTH/2, HEIGHT/2);
+
+    initGraph();
+} 
+function setFullscreenScale() {
+    // reset the current origin
+    CTX.translate(-CANVAS.width/2, -CANVAS.height/2);
+    CTX_OVERLAY.translate(-OVERLAY.width/2, -OVERLAY.height/2);
+    
+    const width = window.screen.availWidth;
+    const height = window.screen.availHeight; // - document.getElementById("Controls").clientHeight;
+    
+    CANVAS.width = width;
+    CANVAS.height = height;
+    OVERLAY.width = width;
+    OVERLAY.height = height;
+
+    CTX.translate(width/2, height/2);
+    CTX_OVERLAY.translate(width/2, height/2);
+
+    initGraph();
+}
+//]]></script>
+    </body>
+</html>
