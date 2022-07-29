@@ -231,29 +231,30 @@ const HEIGHT = CANVAS.height;
 let m_fullscreen = false;
 initGraph();
 
-OVERLAY.addEventListener('mousemove', function(event) {
-    mc_mouse.x = event.offsetX - OVERLAY.width/2;
-    mc_mouse.y = event.offsetY - OVERLAY.height/2;
-});
-
-OVERLAY.addEventListener('mousedown', function(event) {
+function pointerDown(event) {
     clearInterval(m_interval);
     m_running = false;
     m_step = 0;
     m_x = 0;
     
     if (!m_waitForNextClick) {
-        mc_startPos.x = event.offsetX - OVERLAY.width/2;
-        mc_startPos.y = event.offsetY - OVERLAY.height/2;
+        const rect = OVERLAY.getBoundingClientRect();
+        
+        mc_startPos.x = event.clientX - OVERLAY.width/2 - rect.left;
+        mc_startPos.y = event.clientY - OVERLAY.height/2 - rect.top;
 
         m_startAngle = Math.atan2(mc_startPos.y, mc_startPos.x);
 
         drawMark(mc_startPos.x, mc_startPos.y);
         m_interval = setInterval(draw, ANIMTIME);
     }
-});
-
-OVERLAY.addEventListener('mouseup', function(event) {
+}
+function pointerMove(event) {
+    rect = OVERLAY.getBoundingClientRect();
+    mc_mouse.x = event.clientX - OVERLAY.width/2 - rect.left;
+    mc_mouse.y = event.clientY - OVERLAY.height/2 - rect.top;
+}
+function pointerUp(event) {
     dimCanvas();
     drawBody();
     drawMark(mc_startPos.x, mc_startPos.y);
@@ -309,6 +310,7 @@ OVERLAY.addEventListener('mouseup', function(event) {
         oveshoots peri
         41143.361311917935 pos=x: 28, y: 105, vel=x: 0.2102469486654698, y: 0.9776483112944342
         */
+        
         if (debug && DEBUG_INPUT.checked) {
             if (debugNudge > 0) {
             } else {
@@ -541,7 +543,31 @@ OVERLAY.addEventListener('mouseup', function(event) {
         
         m_x = 0;
     }
+}
+
+
+OVERLAY.addEventListener('mousedown', function(event) { pointerDown(event); });
+OVERLAY.addEventListener('mousemove', function(event) { pointerMove(event); });
+OVERLAY.addEventListener('mouseup', function(event) { pointerUp(event); });
+
+
+// https://www.bennadel.com/blog/1867-drawing-on-the-iphone-canvas-with-jquery-and-coldfusion.htm
+// https://developer.mozilla.org/en-US/docs/Web/API/Touch
+
+OVERLAY.addEventListener('touchstart', function(event) { 
+    event.preventDefault();
+    pointerDown(event.touches[0]);
 });
+
+OVERLAY.addEventListener('touchmove', function(event) { 
+    event.preventDefault();
+    pointerMove(event.touches[0]);
+});
+OVERLAY.addEventListener('touchend', function(event) {
+    event.preventDefault();
+    pointerUp(event.touches[0]);
+});
+//OVERLAY.addEventListener('touchcancel', function(event) {});
 
 CIRCULAR.addEventListener('change', function(event) {
     m_step = 0;
@@ -561,6 +587,7 @@ document.getElementById("Scale1").addEventListener('click', function() {
 document.getElementById("Scale2").addEventListener('click', function() {
 });
 */
+
 
 document.getElementById("Fullscreen").addEventListener('click', function() {
     openFullscreen(document.getElementById("FullscreenDiv"));
