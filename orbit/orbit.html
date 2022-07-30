@@ -139,6 +139,8 @@ if (debug) {
     });
 }
 
+let m_orientation = "";
+
 const BODIES = [
     {
         name: "No scale", 
@@ -209,7 +211,7 @@ let m_running = false;
 let m_step = 0;
 const DT_PER_STEP = 10;
 
-let mc_bodyR;
+let m_bodyR;
 let m_mu = 1; // used for: v_circular = sqrt(mu/r)
 
 const mc_mouse = newVector();
@@ -247,6 +249,9 @@ function pointerDown(event) {
 
         drawMark(mc_startPos.x, mc_startPos.y);
         m_interval = setInterval(draw, ANIMTIME);
+    }
+    if (m_fullscreen && (length(mc_startPos) < m_bodyR)) {
+        closeFullscreen();
     }
 }
 function pointerMove(event) {
@@ -546,9 +551,9 @@ function pointerUp(event) {
 }
 
 
-OVERLAY.addEventListener('mousedown', function(event) { pointerDown(event); });
-OVERLAY.addEventListener('mousemove', function(event) { pointerMove(event); });
-OVERLAY.addEventListener('mouseup', function(event) { pointerUp(event); });
+OVERLAY.addEventListener('mousedown', pointerDown);
+OVERLAY.addEventListener('mousemove', pointerMove);
+OVERLAY.addEventListener('mouseup', pointerUp);
 
 
 // https://www.bennadel.com/blog/1867-drawing-on-the-iphone-canvas-with-jquery-and-coldfusion.htm
@@ -602,20 +607,20 @@ document.addEventListener('fullscreenchange', function(event) {
 window.matchMedia("(orientation: portrait)").addEventListener("change", function(event) {
     // https://dev.to/smpnjn/how-to-detect-device-orientation-with-javascript-29e5
     //
-    // alternative:
-    // https://www.codegrepper.com/code-examples/javascript/detect+screen+rotation+javascript
-    // window.addEventListener("orientationchange", function(event) {
-    //      console.log("the orientation of the device is now " + event.target.screen.orientation.angle);
     if (m_fullscreen) {
-        setFullscreenScale();
         if (event.matches) {
             // Portrait mode
+            setFullscreenScale(true);
         } else {
             // Landscape
+            setFullscreenScale(false);
         }
     }
 });
-
+window.addEventListener("orientationchange", function(event) {
+    // https://www.codegrepper.com/code-examples/javascript/detect+screen+rotation+javascript
+    m_orientation = event.target.screen.orientation;
+});
 function setPosVel(phi, dPhi, p, e, pos, vel, temp) {
     const r = p/(1 + e*Math.cos(phi));
 
@@ -669,7 +674,7 @@ function setFromTime(dt, posTarget, velTarget) {
 
 function drawBody() {
     CTX.fillStyle = "gray";
-    fillCircle(0, 0, mc_bodyR);    
+    fillCircle(0, 0, m_bodyR);    
 }
 
 
@@ -688,7 +693,7 @@ function initGraph() {
 
     PAUSE.checked = false;
 
-    mc_bodyR = CANVAS.height/20;
+    m_bodyR = CANVAS.height/20;
     
     fillCanvas();
     drawBody();
@@ -711,7 +716,7 @@ function draw() {
             
             // satellite
             CTX_OVERLAY.strokeStyle = "black";
-            drawCircle(pos, mc_bodyR/5, CTX_OVERLAY)
+            drawCircle(pos, m_bodyR/5, CTX_OVERLAY)
 
             // velocity bar
             drawRelativeLine(pos, vel, CTX_OVERLAY);
@@ -1123,12 +1128,30 @@ function closeFullscreen() {
     }
     m_fullscreen = false;
 
+    let portrait = true;
+    // https://developer.mozilla.org/en-US/docs/Web/API/Screen/orientation
+    switch (m_orientation) {
+        case "landscape-primary":
+        case "landscape-secondary": 
+            portrait = false;
+            break;
+        case "portrait-secondary":
+        case "portrait-primary":
+            portrait = true;
+            break;
+        default:
+            portrait = true;
+    }
+
     const width = window.screen.availWidth;
     const height = window.screen.availHeight; // - document.getElementById("Controls").clientHeight;
 
+    const w = (portrait ? width : height);
+    const h = (portrait ? height : width);
+
     // reset the current fullscreen origin
-    CTX.translate(-width/2, -height/2);
-    CTX_OVERLAY.translate(-width/2, -height/2);
+    CTX.translate(-w/2, -h/2);
+    CTX_OVERLAY.translate(-w/2, -h/2);
 
     CANVAS.width = WIDTH;
     CANVAS.height = HEIGHT;
@@ -1140,21 +1163,41 @@ function closeFullscreen() {
 
     initGraph();
 } 
-function setFullscreenScale() {
+function setFullscreenScale(portrait) {
+    if (portrait != undefined) {
+        portrait = (m_orientation ? "portrait-primary" : "landscape-primary");
+    }
     // reset the current origin
     CTX.translate(-CANVAS.width/2, -CANVAS.height/2);
     CTX_OVERLAY.translate(-OVERLAY.width/2, -OVERLAY.height/2);
     
+    // https://developer.mozilla.org/en-US/docs/Web/API/Screen/orientation
+    switch (m_orientation) {
+        case "landscape-primary":
+        case "landscape-secondary": 
+            portrait = false;
+            break;
+        case "portrait-secondary":
+        case "portrait-primary":
+            portrait = true;
+            break;
+        default:
+            portrait = true;
+    }
+    
     const width = window.screen.availWidth;
     const height = window.screen.availHeight; // - document.getElementById("Controls").clientHeight;
     
-    CANVAS.width = width;
-    CANVAS.height = height;
-    OVERLAY.width = width;
-    OVERLAY.height = height;
+    const w = (portrait ? width : height);
+    const h = (portrait ? height : width);
+    
+    CANVAS.width = w;
+    CANVAS.height = h;
+    OVERLAY.width = w;
+    OVERLAY.height = h;
 
-    CTX.translate(width/2, height/2);
-    CTX_OVERLAY.translate(width/2, height/2);
+    CTX.translate(w/2, h/2);
+    CTX_OVERLAY.translate(w/2, h/2);
 
     initGraph();
 }
