@@ -79,9 +79,10 @@
         
         <div id="Footer" data-depth="" data-topic="" data-version="1.0"></div>        
 
-        <script>//<![CDATA[
+<script>
+//<![CDATA[
 "use strict"; // don't allow hoisting or undeclared variables
-updatePage();
+updatePage(document.lastModified);
 
 let navigation = document.getElementById("Navigation");
 
@@ -125,6 +126,7 @@ if (navigation != null) {
         links.remove();
     }
 }
-        //]]></script>
+//]]>
+</script>
     </body>
 </html>
