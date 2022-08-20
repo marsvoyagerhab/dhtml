@@ -69,62 +69,62 @@
         <ul id="Links">
             <li><a href="chess/index.html" data-image="chess/images/MVChess200x200.png">To a new Chess board</a></li>
             <li><a href="math/ellipse.html">Drawing an ellipse</a></li>
-        <!--
-            <li><a href="secondlife/index.html" data-image="secondlife/images/Rocket_SL_MarsVoyager_266x266.png">Second Life Planetarium</a></li>
-        -->
+            <li><a href="math/hex.html">Hex</a></li>
+            <li><a href="orbit/orbit.html">Orbit</a></li>
         </ul>
 
         <table id="Navigation">
+            <!-- will be filled by script -->
         </table>
         
         <div id="Footer" data-depth="" data-topic="" data-version="1.0"></div>        
 
         <script>//<![CDATA[
-        "use strict"; // don't allow hoisting or undeclared variables
-        updatePage();
-        
-        let navigation = document.getElementById("Navigation");
-        
-        if (navigation != null) {
-            let links = document.getElementById("Links");
-            if (links != null) {
-                let as = links.getElementsByTagName("A");
-                for (let j = 0; j < as.length; j++) {
-                    let name = as[j].innerHTML;
-                    let tr = document.createElement("TR");
-            
-                    let td = document.createElement("TD");
-                    let a = document.createElement("A");
-                    a.href = as[j].href;
-                    a.title = name;
-                    
-                    let img = document.createElement("IMG");
-                    let src = getElementAttribute(as[j], "data-image", null);
-                    if (src != null) {
-                        img.src = src;
-                    } else {
-                        img.src = "images/MarsVoyager_100x100.png";
-                    }
-                    img.title = name;
-                    img.alt = name;
-                    
-                    a.appendChild(img);
-                    td.appendChild(a);
-                    tr.appendChild(td);
+"use strict"; // don't allow hoisting or undeclared variables
+updatePage();
 
-                    td = document.createElement("TD");
-                    a = document.createElement("A");
-                    a.href = as[j].href;
-                    a.title = name;
-                    a.innerHTML = name;
-                    td.appendChild(a);
-                    tr.appendChild(td);
-        
-                    navigation.appendChild(tr);
-                }
-                links.remove();
+let navigation = document.getElementById("Navigation");
+
+if (navigation != null) {
+    let links = document.getElementById("Links"); // will be removed
+    if (links != null) {
+        let as = links.getElementsByTagName("A");
+        for (let j = 0; j < as.length; j++) {
+            let name = as[j].innerHTML;
+            let tr = document.createElement("TR");
+    
+            let td = document.createElement("TD");
+            let a = document.createElement("A");
+            a.href = as[j].href;
+            a.title = name;
+            
+            let img = document.createElement("IMG");
+            let src = getElementAttribute(as[j], "data-image", null);
+            if (src != null) {
+                img.src = src;
+            } else {
+                img.src = "images/MarsVoyager_100x100.png";
             }
+            img.title = name;
+            img.alt = name;
+            
+            a.appendChild(img);
+            td.appendChild(a);
+            tr.appendChild(td);
+
+            td = document.createElement("TD");
+            a = document.createElement("A");
+            a.href = as[j].href;
+            a.title = name;
+            a.innerHTML = name;
+            td.appendChild(a);
+            tr.appendChild(td);
+
+            navigation.appendChild(tr);
         }
+        links.remove();
+    }
+}
         //]]></script>
     </body>
 </html>
