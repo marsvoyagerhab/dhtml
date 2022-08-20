@@ -1,0 +1,1095 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2022-08-03 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+        <title>Mars Voyager on Hex</title>
+
+
+        <meta name="author" content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title" property="og:title" content="Mars Voyager on Hex"/>
+        <meta name="description" property="og:description" content="Explore Maths"/>
+        <meta property="og:image:alt" content="Mars Voyager on Hex"/>
+        <meta property="og:type" content="Science"/>
+        <!-- min 200 x 200 for Facebook -->
+        <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
+
+        <meta name="apple-mobile-web-app-title" content="Mars Hex"/>
+        <meta name="application-name"           content="Mars Hex"/>
+        <meta name="msapplication-config"       content="../icons/browserconfig.xml?v=1"/>
+        <meta name="msapplication-TileColor"    content="#2b5797"/>
+        <meta name="theme-color"                content="#ffffff"/>
+        
+        <script type="text/javascript" src="../graphics.js"></script>
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&amp;display=swap"/> 
+
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
+
+        <!-- https://realfavicongenerator.net -->
+        <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=1" sizes="180x180"/>
+        <link rel="icon"             href="../icons/favicon-32x32.png?v=1"    sizes="32x32" type="image/png"/>
+        <link rel="icon"             href="../icons/favicon-16x16.png?v=1"    sizes="16x16" type="image/png"/>
+        <link rel="manifest"         href="../icons/site.webmanifest?v=1"/>
+        <link rel="mask-icon"        href="../icons/safari-pinned-tab.svg?v=1" color="#5bbad5"/>
+        <link rel="shortcut icon"    href="../icons/favicon.ico?v=1"/>
+        
+        <style>
+        h1 {
+            padding: 15px 0px;
+        }
+        img#Pen {
+            z-index: 10;
+            position: absolute;
+            left: 0px;
+            top: 0px;
+            width: 100px;
+            height: 100px;
+        }
+        div {
+            width: 400px;
+        }
+
+        input, a.share {
+            border: solid 2px #4875B4;
+            padding: 3px 6px;
+        }
+        input {
+            margin: 6px 15px;
+        }
+        a.share {
+            margin: 10px 4px;
+            text-decoration: none;
+        }
+        </style>
+    </head>
+        
+    <body>
+        <h1>Mars Voyager on Hex</h1>
+        
+        <div id="FullscreenDiv">
+            <canvas id="Canvas" width="600" height="400"></canvas>
+        </div>
+        
+        <div style="padding:15px 0px;">
+            <div id="ShareLinks"><div style="padding-bottom:10px;">Share your move:</div></div>
+            <input type="button" id="ShareButton" value="Share"/>
+        
+            <div><input id="Fullscreen" type="button" value="Fullscreen"/></div>
+        </div>
+        
+        <div>
+            <ul>
+                <li><a href="hex.html">New game</a></li>
+        
+                <li><label for="Size">Board size:</label>
+                    <select id="Size" selectedIndex="3">
+                        <option value="3">3x3</option>
+                        <option value="6">6x6</option>
+                        <option value="9">9x9</option>
+                        <option value="11">11x11</option>
+                        <option value="13">13x13</option>
+                        <option value="14">14x14</option>
+                        <option value="19">19x19</option>
+                    </select>
+                </li>
+            </ul>
+        
+            <hr/>
+        
+            <div><b>Wikipedia links</b></div>
+            <ul>
+                <li><a href="https://en.wikipedia.org/wiki/Hex_(board_game)">Hex</a></li>
+                <li><a href="https://en.wikipedia.org/wiki/Piet_Hein_(scientist)">Piet Hein</a></li>
+            </ul>
+        </div> 
+         
+        <div id="Footer" data-depth="../" data-topic="Hex"></div>
+        <script>
+//<![CDATA[
+//
+"use strict"; // don't allow hoisting or undeclared variables
+updatePage();
+const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
+const DEBUG = (true && LOCALEXECUTION);
+const SHAREBASELINK = "https://marsvoyagerhab.github.io/dhtml/math/hex.html";
+
+// solution 
+// file:///Users/hansblom/github/marsvoyagerhab/dhtml/math/hex.html?N=11&L=I1&P=K3&R=7bw2b23XeGSeB41c0LXK&B=u251IbyGNe3K4w2PWeGW
+
+let m_href = window.location.href;
+console.log("Query length: " + m_href.substring(m_href.indexOf("?")).length + " of " + m_href.length);
+
+const CANVAS = document.getElementById("Canvas");
+const CTX = CANVAS.getContext("2d");
+CTX.strokeStyle = "black";
+CTX.fillStyle = "white";
+CTX.lineWidth = 1;
+CTX.font = "18px Arial";
+initializeCtxDefault(CANVAS);
+
+const WIDTH = CANVAS.width;
+const HEIGHT = CANVAS.height;
+
+const BUTTONS = [];
+const BUTTON_FONTSIZE = 14;
+const BUTTON_R = BUTTON_FONTSIZE;
+
+const TEXTCOLOR = "#ACA39A"; // same as in CSS
+const DARKTEXTCOLOR = "#03081e"; // CSS background
+
+const RED_COLOR = "#ee0000";
+const BLUE_COLOR = "#0000ee";
+const BOARD_COLOR = "white";
+const BOARD_TEXT_COLOR = "#eeeeee";
+const BACKGROUND_COLOR = DARKTEXTCOLOR;
+
+const RESERVED = ";/?:@&=+,$"; // what about #
+const BIN = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()-_!.~";
+// encoded: []{}<>^| and space
+for (let i = 0; i < BIN.length; i++) {
+    for (let j = 0; j < RESERVED.length; j++) {
+        if (BIN.indexOf(RESERVED.charAt(j)) > -1) {
+            console.log("Error: BIN defined with reserved letter: " + RESERVED.charAt(j));
+        }
+    }
+}
+if (DEBUG) {
+    console.log(encodeURI(BIN));
+}
+const BINBASE = 3; // number of states per position
+const NBIN = 3; // shall be BINBASE^NBIN <= BIN.length
+if (Math.pow(BINBASE, NBIN) > BIN.length) {
+    console.log("Error: BIN defined too short (" + BIN.length + ") for NBIN=" + NBIN + " " + Math.pow(BINBASE, NBIN));
+}
+if (DEBUG) {
+    console.log(Math.log(BIN.length)/Math.log(BINBASE) + " " + Math.pow(BINBASE, NBIN) + " " + BIN.length);
+}
+const BINZERO = "0".repeat(NBIN);
+function nBinLength(n) {
+    return n*n/NBIN + 1;
+}
+
+const COLORS = [
+    {
+        name:  "Board",
+        shortName: "w",
+        color: BOARD_COLOR,
+        lineWidth: 1,
+        shadowBlur: 0,
+        empty: true,
+    },
+    {
+        name:  "Red",
+        shortName: "r",
+        color: RED_COLOR,
+        lineWidth: 2,
+        shadowBlur: 1,
+        empty: false,
+
+        edge1: function(c) { return new Vector2D(c, 0); },
+        edge2: function(c) { return new Vector2D(c, m_N - 1); },
+    },
+    {
+        name:  "Blue",
+        shortName: "b",
+        color: BLUE_COLOR,
+        lineWidth: 2,
+        shadowBlur: 1,
+        empty: false,
+        
+        edge1: function(r) { return new Vector2D(0,       r); },
+        edge2: function(r) { return new Vector2D(m_N - 1, r); },
+    },
+];
+
+const RED_OBJECT = COLORS[1];
+const BLUE_OBJECT = COLORS[2];
+RED_OBJECT.next = BLUE_OBJECT;
+BLUE_OBJECT.next = RED_OBJECT;
+COLORS[0].next = RED_OBJECT;
+
+const QN = "?N";
+const QVERSION = "&V";
+const QLAST = "&L";
+const QSTATUS = "&S";
+
+const N_DEFAULT = 11;
+let m_N = getQueryValue(QN, N_DEFAULT);
+const VERSION = getQueryValue(QVERSION, 1);
+let m_status;
+
+const mc_translation = {};
+
+let m_lastColor = RED_OBJECT;
+let m_lastMove = null;
+const last = getQueryValue(QLAST, null);
+if (last != null) {
+    let c = last.charAt(0);
+    switch (c) {
+        case RED_OBJECT.shortName:
+            m_lastColor = RED_OBJECT;
+            break;
+        case BLUE_OBJECT.shortName:
+            m_lastColor = BLUE_OBJECT;
+            break;
+        default:
+    }
+    m_lastMove = getTextPosition(last.substring(1));
+    // in case the earlier board was larger
+    if ((m_lastMove.x >= m_N) || (m_lastMove.y >= m_N)) {
+        m_lastMove = null;
+    }
+}
+
+const V30 = Math.PI/6;
+let m_s;
+let m_dx;
+let m_dy;
+initLengths();
+function initLengths() {
+    m_s = Math.min(CANVAS.height, CANVAS.width)/(2*m_N + 1.2);
+    m_dx = m_s*Math.cos(V30);
+    m_dy = m_s*Math.sin(V30);
+}
+
+const SHARE = document.getElementById("ShareButton");
+if (navigator.share) {
+    // https://css-tricks.com/how-to-use-the-web-share-api/      
+    // iOS Safari, desktop Safari
+    // Android Chrome, Android Firefox                  
+    SHARE.addEventListener("click", event => {
+        if (navigator.share) {
+            navigator.share({
+                title: document.title,
+                text: window.location.href,
+                url: window.location.href,
+            });
+        }
+    });
+} else {
+    if (!DEBUG) {
+        SHARE.remove();
+    } else {
+        SHARE.addEventListener("click", event => {
+            console.log("Share button clicked, but not enabled.");
+        });        
+    }
+}
+/*
+}*/
+
+const SIZE = document.getElementById("Size");
+const options = SIZE.children;
+for (let i = 0; i < options.length; i++) {
+    if (options[i].value == m_N) {
+        SIZE.selectedIndex = i;
+    }
+}
+SIZE.addEventListener('click', function(event) {
+    const newN = SIZE.options.item(SIZE.options.selectedIndex).value;
+
+    if (newN != m_N) {
+        // reset the current ctx origin
+        translateBack();
+
+        const oldN = m_N;
+        const oldStatus = m_status;
+        
+        const newBinLength = nBinLength(newN);
+        let newStatus = "0".repeat(newBinLength);
+        
+        // loop up to newN
+        loopBoard(function(pos) {
+            m_N = oldN;
+            m_status = oldStatus;
+            const colorObj = getStatus(pos);
+            if (!colorObj.empty) {
+                m_N = newN;
+                // swap the status
+                m_status = newStatus;
+                setStatus(pos, colorObj);
+                newStatus = m_status;
+            }
+        }, newN);
+        m_N = newN;
+        
+        initialize(newStatus);
+        draw();
+        newQuery();
+        drawStatus();
+    }
+});
+
+initialize();
+draw();
+
+const FULLSCREENDIV = document.getElementById("FullscreenDiv");
+document.getElementById("Fullscreen").addEventListener('click', function() {
+    toggleFullscreen();
+});
+
+document.addEventListener('fullscreenchange', function(event) {
+    // this event is called after fullscreen request
+    if (document.fullscreenElement) {
+        fullscreenOpen(); 
+    } else {
+        fullscreenClosed();
+    }
+});
+window.matchMedia('(orientation: portrait)').addEventListener('change', function(event) {
+    // https://dev.to/smpnjn/how-to-detect-device-orientation-with-javascript-29e5
+    toggleFullscreen();
+});
+window.addEventListener('orientationchange', function(event) {
+    // https://www.codegrepper.com/code-examples/javascript/detect+screen+rotation+javascript
+    // event.target.screen.orientation;
+    toggleFullscreen();
+});
+
+window.addEventListener('popstate', function(event) {
+    const state = event.state;
+    
+    if (state != null) {
+        m_N = state.N;
+        m_lastColor = COLORS[state.lastColor];
+        m_lastMove = ((state.lastMove == null) ? null : getTextPosition(state.lastMove));
+        m_status = state.state;
+    }
+    
+    // reset the current origin
+    translateBack();
+    initialize();
+    draw();
+    
+    //let href = window.location.href;
+    //href = href.substring(0, href.indexOf("?")); // does not include "?" if available
+    //window.location.href = href + state.query;
+});
+
+CANVAS.addEventListener('click', function(event) {
+    const xy = getEventCoordinates(event);
+    const move = getPosition(xy);
+   
+    if (move != null) {
+        if ((m_lastMove != null) && m_lastMove.equals(move)) {
+            m_lastMove = null;
+        } else if (!getStatus(move).empty) {
+            return;
+        } else {
+            // first set previous move
+            if (m_lastMove != null) {
+                setStatus(m_lastMove, m_lastColor);
+                // color of current move
+                m_lastColor = m_lastColor.next;
+            }
+            m_lastMove = move;
+        }
+        newQuery();
+        drawStatus();
+    } else {
+        loopButtons(xy, function(button) {
+            CTX.strokeStyle = "black";
+            CTX.lineWidth = 2;
+            drawCircle(button, button.r);
+            button.action();
+        });
+    }
+});
+CANVAS.addEventListener('mousemove', function(event) {
+    // https://stackoverflow.com/questions/17064913/display-tooltip-in-canvas-graph
+    const xy = getEventCoordinates(event);
+    const move = getPosition(xy);
+
+    CANVAS.title = "";
+    if (move == null) {
+        loopButtons(xy, function(button) {
+            CANVAS.title = button.tooltip;
+        });
+    }
+}, false);
+
+
+function initialize(state) {
+    if (state == undefined) {
+        state = getQueryValue(QSTATUS, "");
+    }
+    const binLength = nBinLength(m_N);
+    const statusDefault = "0".repeat(binLength);
+    m_status = (state + statusDefault).substring(0, binLength);
+
+    initLengths();
+}
+
+function getStatus(pos) {
+    if (isIllegalPosition(pos)) {
+        return COLORS[0];
+    }
+    const p = pos.x + m_N*pos.y;
+    const n = Math.floor(p/NBIN);
+    const bin = NBIN - 1 - (p - n*NBIN);
+
+    return COLORS[parseInt(getBin(getInt(m_status.charAt(n))).charAt(bin))];
+}
+function setStatus(pos, colorObj) {
+    const p = pos.x + m_N*pos.y;
+    
+    const n = Math.floor(p/NBIN);
+    const i = p - NBIN*n;
+    
+    const c = m_status.charAt(n);
+    
+    const colorInt = COLORS.indexOf(colorObj);
+    
+    const w = getChar(getInt(c) + colorInt*Math.pow(BINBASE, i));
+    m_status = m_status.substring(0, n) + w + m_status.substring(n + 1);
+}
+function getSolution(colorObj) {
+    if (colorObj.empty) {
+        return false;
+    }
+    const randomLoops = 6;
+    
+    const marked = [];
+    const starts = [];
+    const ends = [];
+    let rand = [0, 1, 2, 3, 4, 5];
+
+    const setMark = function(arr, pos) {
+        if (getStatus(pos) === colorObj) {
+            arr.push(pos);
+        }
+        if ((m_lastColor === colorObj) && m_lastMove.equals(pos)) {
+            arr.push(pos);
+        }
+    }
+    for (let i = 0; i < m_N; i++) {
+        setMark(starts, colorObj.edge1(i));
+        setMark(ends, colorObj.edge2(i));
+    }
+    loopBoard(function(pos) {
+        setMark(marked, pos);
+    });
+    const getNeighbours = function(pos) {
+        const neighbours = [];
+        const addNeighbour = function(x, y) {
+            let nxt = new Vector2D(pos.x + x, pos.y + y);
+            if (nxt.isInArray(marked)) {
+                neighbours.push(nxt);
+            }
+        }
+        for (let i = 0; i < 6; i++) {
+            switch (rand[i]) {
+                case 0:
+                    addNeighbour( 1,  1);
+                    break;
+                case 1:
+                    addNeighbour( 0,  1);
+                    break;
+                case 2:
+                    addNeighbour( 1,  0);
+                    break;
+                case 3:
+                    addNeighbour( 0, -1);
+                    break;
+                case 4:
+                    addNeighbour(-1,  0);
+                    break;
+                case 5:
+                    addNeighbour(-1, -1);
+                    break;
+                default:
+                    console.log("Warning: Switch problem of random integers");
+            }
+        }
+
+        return neighbours;
+    }
+    // https://www.baeldung.com/cs/check-if-two-nodes-are-connected
+    // Depth First Traversal
+    const DFS = function(u, v, visited) {
+        if (u.equals(v)) {
+            return true;
+        }
+        if (u.isInArray(visited)) {
+            return false;
+        }
+        visited.push(u);
+
+        const neighbours = getNeighbours(u);
+        for (let i = 0; i < neighbours.length; i++) {
+            if (DFS(neighbours[i], v, visited)) {
+                return true;
+            }
+        }
+        return false;
+    }
+    
+    //const paths = [];
+    let shortest = m_N*m_N;
+    let shortestPath = [];
+    const n = 50;
+    let bestRand = rand.slice();
+    let solutionFound = true;
+    
+    for (let i = 0; (i < n) && solutionFound; i++) {
+        solutionFound = false;
+        rand = bestRand.slice();
+        for (let r = 0; r < randomLoops; r++) {
+            const r1 = rand[r];
+            const ri = (r + Math.floor(Math.random()*5 + 1)) % 6;
+            const r2 = rand[ri];
+            rand[r] = r2;
+            rand[ri] = r1;
+        }
+        for (let s = 0; s < starts.length; s++) {
+            for (let e = 0; e < ends.length; e++) {
+                const visited = [];
+                if (DFS(starts[s], ends[e], visited)) {
+                    solutionFound = true;
+                    visited.push(ends[e]);
+                    if (visited.length < shortest) {
+                        shortest = visited.length;
+                        shortestPath = visited;
+                        bestRand = rand.slice();
+                    }
+                    //paths.push(visited);
+                }
+            }
+        }
+        if (i == n - 1) {
+            //console.log(n + " random loops performed");
+        }
+    }
+    if (shortestPath.length > 0) {
+        if (DEBUG) {
+            console.log(bestRand);
+        }
+        return shortestPath; // paths; //
+    }
+    return false;
+}
+
+// https://stackoverflow.com/questions/49223096/is-there-a-way-to-document-parameters-of-a-function-parameter
+/**
+ * A function to be passed as an argument.
+ * @callback loopBoardCallback
+ * @param {Vector2D} pos - The position.
+ */
+/**
+ * Loops through all positions of the board and calls the callback function.
+ * @param {loopBoardCallback} fcn - Callback for each cell in the board.
+ * @param {integer} [n = m_N]     - Loop length, same for column and row.
+ */
+function loopBoard(fcn, n) {
+    if (n == undefined) {
+        n = m_N;
+    }
+    for (let r = 0; r < n; r++) { // y
+        for (let c = 0; c < n; c++) { // x
+            fcn(new Vector2D(c, r));
+        }
+    }
+}
+
+
+/* SUPPORTING FUNCTIONS */
+
+function getChar(i) {
+    return BIN.charAt(i);
+}
+function getInt(c) {
+    return BIN.indexOf(c);
+}
+function getBin(i) { // Most significant bit first
+    let s = "";
+    let n = NBIN;
+    while (n > -1) {
+        let q = (BINBASE - 1)*Math.pow(BINBASE, n);
+        if (i >= q) {
+            s = s + "2";
+            i = i - q;
+        } else {
+            q = q/2;
+            if (i >= q) {
+                s = s + "1";
+                i = i - q;
+            } else {
+                s = s + "0";
+            }
+        }
+        n--;
+    }
+    s = BINZERO + s;
+    s = s.substring(s.length - NBIN);
+    return s;
+}
+
+function getPositionText(pos) {
+    if (pos == null) {
+        return null;
+    }
+    return String.fromCharCode(65 + pos.x) + (pos.y + 1);
+}
+function getTextPosition(txt) {
+    return new Vector2D(txt.charCodeAt(0) - 65, parseInt(txt.substring(1)) - 1);
+}
+
+
+/* GRAPHICS */
+
+function draw() {
+    CTX.fillStyle = BACKGROUND_COLOR;
+    CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
+    
+    const n = (m_N - 1)/2;
+    mc_translation.x = CANVAS.width/2 - m_dx*n;
+    mc_translation.y = CANVAS.height/2 - m_s*n - m_dy*n;
+    translate(mc_translation);
+    
+    drawBoard(false);
+    drawStatus();
+}
+
+function drawStatus(ctx) {
+    updateShareLinks();
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    function drawColoredHex(pos, colorObj) {
+        if (colorObj == undefined) {
+            colorObj = getStatus(pos);
+        }
+        if (isIllegalPosition(pos)) {
+            return;
+        }
+        ctx.fillStyle = colorObj.color;
+        ctx.lineWidth = colorObj.lineWidth*m_s/20;
+        
+        setShadow("#444444", colorObj.shadowBlur*ctx.lineWidth/4);
+        
+        drawHexPosition(pos, ctx);
+        
+        clearShadow();
+    }
+    
+    ctx.strokeStyle = "black";
+    loopBoard(function(pos) {
+        drawColoredHex(pos);
+    });
+    
+    if (m_lastMove != null) {
+        drawColoredHex(m_lastMove, m_lastColor);
+        
+        const solution = getSolution(m_lastColor);
+        if (solution) {
+            if (DEBUG) {
+                console.log("Solved by " + m_lastColor.name + ", path length: " + solution.length);
+            }
+
+            ctx.strokeStyle = "black";
+            ctx.fillStyle = "yellow";
+            for (let i = 0; i < solution.length; i++) {
+                const pos = solution[i];
+                const a = getPositionXY(pos);
+                fillCircle(a, m_s/2, ctx);
+                drawCircle(a, m_s/2, ctx);
+            }
+        }
+        
+    }
+    
+    // mark next move side
+    
+    const r = Math.PI/2;
+    const W = CANVAS.width;
+    const H = CANVAS.height;
+
+    function drawSide(a, w, h, color) {
+        ctx.strokeStyle = color;
+        rotate(a);
+        drawLine(0, 0, w, 0, ctx);
+        drawLine(0, h, w, h, ctx);
+        rotateBack();
+    }
+
+    ctx.lineWidth = 10;
+    const translation = translateBack();
+
+    let color = BACKGROUND_COLOR;
+    drawSide(0, W, H,  color);
+    drawSide(r, H, -W, color);
+
+    if (m_lastMove == null) {
+        if (m_lastColor === RED_OBJECT) {
+            drawSide(0, W, H, RED_COLOR);
+        } else {
+            m_lastColor = BLUE_OBJECT;
+            drawSide(r, H, -W, BLUE_COLOR);
+        }
+    } else {
+        if (m_lastColor === RED_OBJECT) {
+            drawSide(r, H, -W, BLUE_COLOR);
+        } else {
+            drawSide(0, W, H, RED_COLOR);
+        }
+    }
+    translate(translation);
+}
+
+function drawBoard(drawTiles, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+
+    function drawBorder() {
+        ctx.beginPath();
+    
+        const by = m_s*1.2; // border from mid of top left side
+
+        ctx.moveTo(0, 0);
+        const y = -(m_s - m_dy/2) - by;
+        ctx.lineTo(Math.tan(V30)*y, y);
+    
+        translate((m_N - 1)*2*m_dx, 0);
+        ctx.lineTo(-Math.tan(2*V30)*y, y);
+        ctx.lineTo(0, 0);
+        translateBack();
+    
+        ctx.closePath();    
+        ctx.fill();
+    }
+    
+    ctx.fillStyle = RED_COLOR;
+    // top
+    drawBorder();
+    
+    const opposite = getPositionXY(new Vector2D(-(m_N - 1), -(m_N - 1)));
+    
+    // bottom
+    scale(-1, -1);
+    translate(opposite);            
+    drawBorder();            
+    translateBack(); 
+    scaleBack();
+
+    ctx.fillStyle = BLUE_COLOR;
+    // left
+    rotate(-2*V30);
+    scale(-1, 1);
+    drawBorder();
+    
+    // right
+    scale(-1, -1);
+    translate(opposite);           
+    drawBorder();            
+    translateBack(); 
+    scaleBack();
+    
+    scaleBack();
+    rotateBack();
+
+    if (drawTiles) {
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = BOARD_COLOR;
+        loopBoard(function(pos) {
+            drawHexPosition(pos);
+        });
+    }
+
+    ctx.fillStyle = BOARD_TEXT_COLOR;
+    const fontSize = Math.floor(m_s);
+    ctx.font = fontSize + "px Arial";
+    ctx.textAlign = "center";
+    
+    function drawBoardLabel(x, y, txt) {
+        ctx.fillText(txt, x, y + fontSize/2);
+    }
+    
+    for (let i = 0; i < m_N; i++) {
+        const row = i + 1;
+        const col = String.fromCharCode(65 + i);
+
+        translate(i*2*m_dx, -m_s);
+        drawBoardLabel(3*m_dx/4, -3*m_dy/4, col);
+        drawBoardLabel(-m_N*m_dx + m_dx/4, 5*m_dy/4 + m_N*(m_s + m_dy), col);
+        translateBack();
+        
+        translate(-i*m_dx, i*(m_s + m_dy) - m_s/2 + 3*m_dy/4);
+        drawBoardLabel(-2*m_dx + m_dx/3,  0, row);
+        drawBoardLabel(m_N*2*m_dx - m_dx/3, 0, row);
+        translateBack();
+    }
+    
+    // remove all old buttons, TODO remove from ctx
+    BUTTONS.splice(0, BUTTONS.length);
+
+    const buttonR = 40;
+    
+    drawButton(buttonR, buttonR, "<", "Back", function() {
+        window.history.back();
+    }, ctx);
+    drawButton(2*buttonR, buttonR, ">", "Forward", function() {
+        window.history.forward();
+    }, ctx);
+    drawButton(3*buttonR, buttonR, "F", "Fullscreen toggle", function() {
+        toggleFullscreen();
+    }, ctx);
+    drawButton(4*buttonR, buttonR, "S", "Share", function() {
+        // https://stackoverflow.com/questions/809057/how-do-i-programmatically-click-on-an-element-in-javascript
+        SHARE.dispatchEvent(new MouseEvent("click", {
+            "view": window,
+            "bubbles": true,
+            "cancelable": false
+        }));
+    }, ctx);
+}
+
+function isIllegalPosition(pos) {
+    return ((pos == null) || 
+            (pos.x < 0) || (pos.x >= m_N) ||
+            (pos.y < 0) || (pos.y >= m_N));
+}
+function getPositionXY(pos) {
+    const x = pos.x*2*m_dx - pos.y*m_dx;
+    const y = pos.y*(m_dy + m_s);
+    return new Vector2D(x, y);
+}
+function getPosition(xy) {
+    const pos = new Vector2D();
+    pos.x = Math.floor((xy.x + m_dx)/(2*m_dx));
+    pos.y = Math.floor((xy.y + m_s)/(3*m_s/2));
+    if (pos.y % 2 > 0.5) {
+        pos.x = Math.floor((xy.x + m_dx)/(2*m_dx) + 0.5);
+    }
+    pos.x = Math.floor(pos.x + pos.y/2);
+    
+    const centerXY = getPositionXY(pos);
+    if (xy.minus(centerXY).length() > m_s*0.9*Math.cos(V30)) {
+        return null;
+    }
+    if (!isIllegalPosition(pos)) {
+        return pos;
+    }
+    return null;
+}
+
+function drawHexPosition(pos, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    drawHex(getPositionXY(pos), ctx);
+}
+function drawHex(a, ctx) { // center at a
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.beginPath();
+    
+    translate(a.x, a.y - m_s, ctx);
+    ctx.moveTo(0, 0); // starting at top
+    ctx.lineTo(m_dx, m_dy);
+    ctx.lineTo(m_dx, m_dy + m_s);
+    ctx.lineTo(0, 2*m_dy + m_s);
+    ctx.lineTo(-m_dx, m_dy + m_s);
+    ctx.lineTo(-m_dx, m_dy);
+    translateBack();
+    
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
+}
+
+// note x, y in default canvas coordinates
+function drawButton(x, y, txt, tooltip, actionFcn, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    ctx.fontSize = BUTTON_FONTSIZE;
+
+    const translation = translateBack();
+    ctx.fillStyle = "gold";
+    fillCircle(x, y, BUTTON_R, ctx);
+    
+    ctx.fillStyle = "black";
+    ctx.font = "bold " + BUTTON_R + "px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText(txt, x, y + BUTTON_FONTSIZE/2 - 2);
+    translate(translation);
+    
+    const button = new Vector2D(x - translation.x, y - translation.y);
+    
+    button.r = BUTTON_R;
+    button.tooltip = tooltip;
+    button.action = actionFcn;
+    
+    BUTTONS.push(button);
+}
+function loopButtons(xy, fcn) {
+    for (let i = 0; i < BUTTONS.length; i++) {
+        const button = BUTTONS[i];
+        if (xy.minus(button).length() < button.r) {
+            fcn(button);
+        }
+    }
+}
+function getEventCoordinates(event) {
+    let rect = event.target.getBoundingClientRect();
+    const x = event.clientX - rect.left - mc_translation.x;
+    const y = event.clientY - rect.top - mc_translation.y;
+    return new Vector2D(x, y);
+}
+
+
+/* QUERY */
+
+// bin 2: ?N=19&L=bS18&R=00000000000000000000000000000000000000000000000000000000000G1&B=00000000000000000000000000000000000000000000000000000000000W
+// bin 3  ?N=19&L=bS17&S=fViA000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000090000002
+function newQuery() {
+    const state = {
+        N: m_N,
+        lastColor: COLORS.indexOf(m_lastColor),
+        lastMove: ((m_lastMove == null) ? null : getPositionText(m_lastMove)),
+        state: m_status,
+    };
+    let query = QN + "=" + m_N;
+    query = query + QVERSION + "=" + 1;
+    
+    let titleInfo = new Date().toLocaleString('sv', { timeZoneName: 'short' }).substring(0, 16).replaceAll(" ", "T");
+    if (m_lastMove != null) {
+        query = query + QLAST + "=" + m_lastColor.shortName + getPositionText(m_lastMove);
+        titleInfo = m_lastColor.name + " " + getPositionText(m_lastMove) + " " + titleInfo;
+    }
+    
+    const theState = function(state) {
+        let query = "";
+        let last = false;
+        for (let i = Math.min(state.length - 1, m_N*m_N/NBIN); i > -1 ; i--) { // use N, as it may have been changed
+            if (state.charAt(i) != "0") {
+                last = true;
+            }
+            if (last) {
+                query = state.charAt(i) + query;
+            }
+        }
+        if (!last) {
+            query = "0";
+        }
+        return query;
+    }
+    query = query + QSTATUS + "=" + theState(m_status);
+        
+    let href = window.location.href;
+    href = href.substring(0, href.indexOf("?")); // does not include "?" if available
+    
+    m_href = href + query;
+    
+    const title = document.getElementsByTagName("TITLE")[0];
+    const earlierTitle = title.innerText;
+    title.innerText = title.innerText + " " + titleInfo; 
+    
+    setTimeout(function() {
+        history.pushState(state, "", m_href);
+        title.innerText = earlierTitle;
+    }, 10);
+}
+function updateShareLinks() {
+    // https://schier.co/blog/pure-html-share-buttons
+    // https://developers.facebook.com/tools/debug/
+    // https://www.linkedin.com/post-inspector/
+
+    let title = encodeURI(document.title);
+    let url = encodeURIComponent(window.location.href);
+    
+    if (LOCALEXECUTION) {
+        url = encodeURIComponent(SHAREBASELINK) + window.location.search;
+    }
+
+    let links = [];
+    links.push({id:"Mail",     url:"mailto:?subject=" + title + "&body=" + url});
+    links.push({id:"Twitter",  url:"https://twitter.com/share?url=" + url + "&text=" + title}); // &text=<TEXT>via=<USERNAME>
+    links.push({id:"LinkedIn", url:"https://www.linkedin.com/shareArticle?url=" + url + "&title=" + title + "&summary=" + title});
+    links.push({id:"Facebook", url:"https://www.facebook.com/sharer/sharer.php?u=" + url});
+
+    let share = document.getElementById("ShareLinks");
+    
+    for (let i = 0; i < links.length; i++) {
+        let a = document.getElementById(links[i].id);
+        if (a == null) {
+            a = document.createElement("A");
+            a.className = "share";
+            a.setAttribute("class", "share");
+            a.id = links[i].id;
+            a.innerHTML = a.id;
+            share.appendChild(a);
+        }
+        a.href = links[i].url;
+    }
+}
+
+function toggleFullscreen() {
+    if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { // Safari
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE11
+            document.msExitFullscreen();
+        }
+    } else {
+        const elem = FULLSCREENDIV;
+    
+        if (elem.requestFullscreen) {
+            // https://stackoverflow.com/questions/23913111/firefox-browser-rejected-fullscreen-change
+            // Mozilla Firefox insists that the code in the event handler executes under 1 second. 
+            // Request for fullscreen was denied because Element.requestFullscreen() was not called from inside a short running user-generated event handler.
+            // seems to happen when trying to open in event handler 'fullscreenchange'
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { // Safari
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE11
+            elem.msRequestFullscreen();
+        }
+    }
+}
+
+// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
+function fullscreenOpen() {
+    setTimeout(function () {
+        // reset the current origin
+        translateBack();
+    
+        CANVAS.width = window.screen.availWidth;
+        CANVAS.height = window.screen.availHeight;
+
+        initLengths();
+        draw();
+    }, 700);
+}
+function fullscreenClosed() {
+    // reset the current origin
+    translateBack();
+
+    CANVAS.width = WIDTH;
+    CANVAS.height = HEIGHT;
+
+    initLengths();
+    draw();
+} 
+//]]></script>
+    </body>
+</html>
