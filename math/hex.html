@@ -123,7 +123,7 @@
 //<![CDATA[
 //
 "use strict"; // don't allow hoisting or undeclared variables
-updatePage();
+updatePage(document.lastModified);
 const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
 const DEBUG = (true && LOCALEXECUTION);
 const SHAREBASELINK = "https://marsvoyagerhab.github.io/dhtml/math/hex.html";
