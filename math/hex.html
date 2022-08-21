@@ -87,9 +87,14 @@
         
         <div style="padding:15px 0px;">
             <div id="ShareLinks"><div style="padding-bottom:10px;">Share your move:</div></div>
-            <input type="button" id="ShareButton" value="Share"/>
         
-            <div><input id="Fullscreen" type="button" value="Fullscreen"/></div>
+            <p>
+                <input type="button" id="ShareButton" value="Share"/>
+                <input type="button" id="Fullscreen"  value="Fullscreen"/>
+                <!-- for debugging -->
+                <input type="button" id="random"      value="Random"/>
+                <input type="button" id="recalc"      value="Recalc"/>
+            </p>
         </div>
         
         <div>
@@ -119,20 +124,19 @@
         </div> 
          
         <div id="Footer" data-depth="../" data-topic="Hex"></div>
-        <script>
+
+<script>
 //<![CDATA[
-//
 "use strict"; // don't allow hoisting or undeclared variables
-updatePage(document.lastModified);
+updatePage();
 const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
 const DEBUG = (true && LOCALEXECUTION);
 const SHAREBASELINK = "https://marsvoyagerhab.github.io/dhtml/math/hex.html";
 
-// solution 
-// file:///Users/hansblom/github/marsvoyagerhab/dhtml/math/hex.html?N=11&L=I1&P=K3&R=7bw2b23XeGSeB41c0LXK&B=u251IbyGNe3K4w2PWeGW
-
 let m_href = window.location.href;
-console.log("Query length: " + m_href.substring(m_href.indexOf("?")).length + " of " + m_href.length);
+if (DEBUG && (m_href.indexOf("?") > -1)) {
+    console.log("Query length: " + m_href.substring(m_href.indexOf("?")).length + " of " + m_href.length);
+}
 
 const CANVAS = document.getElementById("Canvas");
 const CTX = CANVAS.getContext("2d");
@@ -146,8 +150,7 @@ const WIDTH = CANVAS.width;
 const HEIGHT = CANVAS.height;
 
 const BUTTONS = [];
-const BUTTON_FONTSIZE = 14;
-const BUTTON_R = BUTTON_FONTSIZE;
+const BUTTON_R = 14;
 
 const TEXTCOLOR = "#ACA39A"; // same as in CSS
 const DARKTEXTCOLOR = "#03081e"; // CSS background
@@ -159,8 +162,8 @@ const BOARD_TEXT_COLOR = "#eeeeee";
 const BACKGROUND_COLOR = DARKTEXTCOLOR;
 
 const RESERVED = ";/?:@&=+,$"; // what about #
-const BIN = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()-_!.~";
-// encoded: []{}<>^| and space
+const BIN = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz()-_!.~[]{}<>^|åäöÅÄÖ";
+// encoded: []{}<>^| and space and åäöÅÄÖ
 for (let i = 0; i < BIN.length; i++) {
     for (let j = 0; j < RESERVED.length; j++) {
         if (BIN.indexOf(RESERVED.charAt(j)) > -1) {
@@ -168,23 +171,21 @@ for (let i = 0; i < BIN.length; i++) {
         }
     }
 }
-if (DEBUG) {
-    console.log(encodeURI(BIN));
-}
-const BINBASE = 3; // number of states per position
+const BINBASE = 3; // number of states per position, shall be 3
 const NBIN = 3; // shall be BINBASE^NBIN <= BIN.length
 if (Math.pow(BINBASE, NBIN) > BIN.length) {
-    console.log("Error: BIN defined too short (" + BIN.length + ") for NBIN=" + NBIN + " " + Math.pow(BINBASE, NBIN));
+    console.log("Error: BIN defined too short (" + BIN.length + ") for NBIN=" + NBIN + ", required length: " + Math.pow(BINBASE, NBIN));
 }
 if (DEBUG) {
-    console.log(Math.log(BIN.length)/Math.log(BINBASE) + " " + Math.pow(BINBASE, NBIN) + " " + BIN.length);
+    console.log(encodeURI(BIN));
+    console.log(Math.log(BIN.length)/Math.log(BINBASE) + " " + Math.pow(BINBASE, NBIN) + " <=? " + BIN.length);
 }
 const BINZERO = "0".repeat(NBIN);
 function nBinLength(n) {
     return n*n/NBIN + 1;
 }
 
-const COLORS = [
+const COLOR_OBJECTS = [
     {
         name:  "Board",
         shortName: "w",
@@ -201,8 +202,11 @@ const COLORS = [
         shadowBlur: 1,
         empty: false,
 
-        edge1: function(c) { return new Vector2D(c, 0); },
-        edge2: function(c) { return new Vector2D(c, m_N - 1); },
+        getStartPos: function(c) { return new Vector2D(c, 0); },
+        getEndPos:   function(c) { return new Vector2D(c, m_N - 1); },
+
+        isStartEdge: function(pos) { return (pos.y == 0); },
+        isOwnEdge:  function(pos) { return ((pos.y == 0) || (pos.y == (m_N - 1))); },
     },
     {
         name:  "Blue",
@@ -212,16 +216,19 @@ const COLORS = [
         shadowBlur: 1,
         empty: false,
         
-        edge1: function(r) { return new Vector2D(0,       r); },
-        edge2: function(r) { return new Vector2D(m_N - 1, r); },
+        getStartPos: function(r) { return new Vector2D(0,       r); },
+        getEndPos:   function(r) { return new Vector2D(m_N - 1, r); },
+
+        isStartEdge: function(pos) { return (pos.x == 0); },
+        isOwnEdge: function(pos) { return ((pos.x == 0) || (pos.x == (m_N - 1))); },
     },
 ];
 
-const RED_OBJECT = COLORS[1];
-const BLUE_OBJECT = COLORS[2];
+const RED_OBJECT = COLOR_OBJECTS[1];
+const BLUE_OBJECT = COLOR_OBJECTS[2];
 RED_OBJECT.next = BLUE_OBJECT;
 BLUE_OBJECT.next = RED_OBJECT;
-COLORS[0].next = RED_OBJECT;
+COLOR_OBJECTS[0].next = RED_OBJECT;
 
 const QN = "?N";
 const QVERSION = "&V";
@@ -257,7 +264,7 @@ if (last != null) {
 }
 
 const V30 = Math.PI/6;
-let m_s;
+let m_s; // hex tile side length
 let m_dx;
 let m_dy;
 initLengths();
@@ -300,7 +307,7 @@ for (let i = 0; i < options.length; i++) {
         SIZE.selectedIndex = i;
     }
 }
-SIZE.addEventListener('click', function(event) {
+SIZE.addEventListener('change', function(event) {
     const newN = SIZE.options.item(SIZE.options.selectedIndex).value;
 
     if (newN != m_N) {
@@ -366,7 +373,7 @@ window.addEventListener('popstate', function(event) {
     
     if (state != null) {
         m_N = state.N;
-        m_lastColor = COLORS[state.lastColor];
+        m_lastColor = COLOR_OBJECTS[state.lastColor];
         m_lastMove = ((state.lastMove == null) ? null : getTextPosition(state.lastMove));
         m_status = state.state;
     }
@@ -423,10 +430,60 @@ CANVAS.addEventListener('mousemove', function(event) {
     }
 }, false);
 
+if (DEBUG) {
+    document.getElementById("random").addEventListener('click', function() {
+        const binLength = nBinLength(m_N);
+        m_status = "0".repeat(binLength);
+
+        randomBoard();
+
+        m_lastMove = new Vector2D(1,1);
+        m_lastColor = BLUE_OBJECT;
+
+        newQuery();
+    
+        drawBoard(false);
+        const solved = drawStatus();
+        
+        if (!solved) {
+            m_lastMove = new Vector2D(1,1);
+            m_lastColor = RED_OBJECT;
+
+            newQuery();
+    
+            drawBoard(false);
+            drawStatus();
+        }
+    });
+    document.getElementById("recalc").addEventListener('click', function() {
+        m_lastMove = new Vector2D(1,1);
+        m_lastColor = BLUE_OBJECT;
+
+        newQuery();
+    
+        drawBoard(false);
+        const solved = drawStatus();
+        
+        if (!solved) {
+            m_lastMove = new Vector2D(1,1);
+            m_lastColor = RED_OBJECT;
+    
+            drawBoard(false);
+            drawStatus();
+        }
+    });
+} else {
+    document.getElementById("random").remove();
+    document.getElementById("recalc").remove();
+}
 
 function initialize(state) {
     if (state == undefined) {
-        state = getQueryValue(QSTATUS, "");
+        state = decodeURI(getQueryValue(QSTATUS, ""));
+        if (DEBUG) {
+            console.log(state);
+            console.log(encodeURI(state));
+        }
     }
     const binLength = nBinLength(m_N);
     const statusDefault = "0".repeat(binLength);
@@ -437,13 +494,13 @@ function initialize(state) {
 
 function getStatus(pos) {
     if (isIllegalPosition(pos)) {
-        return COLORS[0];
+        return COLOR_OBJECTS[0];
     }
     const p = pos.x + m_N*pos.y;
     const n = Math.floor(p/NBIN);
     const bin = NBIN - 1 - (p - n*NBIN);
 
-    return COLORS[parseInt(getBin(getInt(m_status.charAt(n))).charAt(bin))];
+    return COLOR_OBJECTS[parseInt(getBin(getInt(m_status.charAt(n))).charAt(bin))];
 }
 function setStatus(pos, colorObj) {
     const p = pos.x + m_N*pos.y;
@@ -453,75 +510,84 @@ function setStatus(pos, colorObj) {
     
     const c = m_status.charAt(n);
     
-    const colorInt = COLORS.indexOf(colorObj);
+    const colorInt = COLOR_OBJECTS.indexOf(colorObj);
     
     const w = getChar(getInt(c) + colorInt*Math.pow(BINBASE, i));
     m_status = m_status.substring(0, n) + w + m_status.substring(n + 1);
 }
 function getSolution(colorObj) {
+    const time1 = new Date().getTime();
+    
     if (colorObj.empty) {
         return false;
     }
-    const randomLoops = 6;
+    const maxSolutionLoops = Math.max(10, 30 - m_N);
+    const maxSolutionAlternatives = 3;
+    const maxRemoveClusterLoops = 10;
+    const maxRemoveLoops = 12;
     
     const marked = [];
     const starts = [];
     const ends = [];
+    
     let rand = [0, 1, 2, 3, 4, 5];
+    if (colorObj === RED_OBJECT) {
+        rand = [ 0, 1, 2, 3, 4, 5 ];
+    } else {
+        rand = [ 5, 4, 3, 2, 1, 0 ];
+    }
+    const randSteps = new Array(6);
+    const steps = [ {dx:  0, dy:  1}, // 0
+                    {dx:  1, dy:  1}, // 1
+                    {dx:  1, dy:  0}, // 2
+                    {dx: -1, dy:  0}, // 3
+                    {dx: -1, dy: -1}, // 4
+                    {dx:  0, dy: -1}, // 5
+                  ];
 
     const setMark = function(arr, pos) {
         if (getStatus(pos) === colorObj) {
             arr.push(pos);
-        }
-        if ((m_lastColor === colorObj) && m_lastMove.equals(pos)) {
+        } else if ((m_lastColor === colorObj) && pos.equals(m_lastMove)) {
             arr.push(pos);
         }
     }
+    // the start and goal sides
     for (let i = 0; i < m_N; i++) {
-        setMark(starts, colorObj.edge1(i));
-        setMark(ends, colorObj.edge2(i));
+        setMark(starts, colorObj.getStartPos(i));
+        setMark(ends,   colorObj.getEndPos(i));
     }
     loopBoard(function(pos) {
         setMark(marked, pos);
     });
-    const getNeighbours = function(pos) {
-        const neighbours = [];
-        const addNeighbour = function(x, y) {
-            let nxt = new Vector2D(pos.x + x, pos.y + y);
-            if (nxt.isInArray(marked)) {
-                neighbours.push(nxt);
-            }
-        }
-        for (let i = 0; i < 6; i++) {
-            switch (rand[i]) {
-                case 0:
-                    addNeighbour( 1,  1);
-                    break;
-                case 1:
-                    addNeighbour( 0,  1);
-                    break;
-                case 2:
-                    addNeighbour( 1,  0);
-                    break;
-                case 3:
-                    addNeighbour( 0, -1);
-                    break;
-                case 4:
-                    addNeighbour(-1,  0);
-                    break;
-                case 5:
-                    addNeighbour(-1, -1);
-                    break;
-                default:
-                    console.log("Warning: Switch problem of random integers");
-            }
-        }
+    
+    const getVectorObjectFromArray = function(arr, x, y) {
+        return arr.find(obj => { return ((obj.x == x) && (obj.y == y)); });
+    }
 
+    const Neighbours = new Array();
+    const getNeighbours = function(pos, marked, level) {
+        let pop = true;
+        if (Neighbours.length < (level + 1)) {
+            Neighbours.push([]);
+            pop = false;
+        }
+        const neighbours = Neighbours[level];
+        if (pop) {
+            neighbours.splice(0);
+        }
+        
+        randSteps.forEach(step => {
+            const p = getVectorObjectFromArray(marked, pos.x + step.dx, pos.y + step.dy);
+            if (p != undefined) {
+                neighbours.push(p);
+            }
+        });
         return neighbours;
     }
     // https://www.baeldung.com/cs/check-if-two-nodes-are-connected
     // Depth First Traversal
-    const DFS = function(u, v, visited) {
+    const DFS = function(u, v, visited, marked, level) {
         if (u.equals(v)) {
             return true;
         }
@@ -529,57 +595,250 @@ function getSolution(colorObj) {
             return false;
         }
         visited.push(u);
-
-        const neighbours = getNeighbours(u);
-        for (let i = 0; i < neighbours.length; i++) {
-            if (DFS(neighbours[i], v, visited)) {
-                return true;
-            }
-        }
-        return false;
+        return (getNeighbours(u, marked, level).find(neighbour => { return DFS(neighbour, v, visited, marked, level + 1) }) != undefined);
     }
     
-    //const paths = [];
+    const initRandSteps = function() {
+        rand.forEach((r, i) => {
+            randSteps[i] = steps[r];
+        });        
+    }
+    const randomizeArray = function() {
+        rand.forEach((r1, i) => {
+            const ri = (i > 0 ? Math.floor(Math.random()*(i - 1)) : 0) + (i < 5 ? (1 + Math.floor(Math.random()*(5 - i))) : 0);
+            const r2 = rand[ri];
+            rand[i] = r2;
+            rand[ri] = r1;
+        });
+        
+        // ?N=19&V=1&L=rB2&S=HQPEHGDMGHEDMDEMEHPHMGDQGHEMPDHPHQNNDPHEDMEHEEDMQDPMEHHHNHQEEPDHHMNPMPGQMHHGQMPNGMNDQQEQGMNGQNNNPDQPMNEPNEMMPGQNGEQQQMGE2
+        //rand = [2,5,0,4,3,1];
+        
+        // N=19&V=1&L=rB2&S=DGNEENQEENDNGDGGNMHNQPQHGHHGDQGPQMNHQGDPPMDNEGPEGMNQDHPDHNGPNPHMMEGHNGNEDGNPGPEHDMQQEQMNQNNQGQMNEDGEHNMQHEHPQEMGEGQHQGEP1
+        //rand = [1,3,0,5,2,4];
+        
+        // N=13&V=1&L=bB2&S=DMDMMEQQMPMHMEQPHPDMNMHNHPNHGPEENQPHGEGGHQDPQMDEMQNPMMGD1
+         //rand = [1,0,4,5,3,2];
+        
+        initRandSteps();
+    }
+    
+    const checkSolution = function(solution, startPos, endPos) {
+        let solutionFound = false;
+        for (let i = 0; (i < maxSolutionLoops) && (!solutionFound); i++) {
+            if (i != 0) { // no random in first loop
+                randomizeArray();
+            }
+            if (DFS(startPos, endPos, [], solution, 0)) {
+                solutionFound = true;
+            }
+        }
+        return solutionFound;
+    }
+
+    const time2 = new Date().getTime();
+    
     let shortest = m_N*m_N;
     let shortestPath = [];
-    const n = 50;
     let bestRand = rand.slice();
-    let solutionFound = true;
+    initRandSteps();
     
-    for (let i = 0; (i < n) && solutionFound; i++) {
-        solutionFound = false;
-        rand = bestRand.slice();
-        for (let r = 0; r < randomLoops; r++) {
-            const r1 = rand[r];
-            const ri = (r + Math.floor(Math.random()*5 + 1)) % 6;
-            const r2 = rand[ri];
-            rand[r] = r2;
-            rand[ri] = r1;
-        }
-        for (let s = 0; s < starts.length; s++) {
-            for (let e = 0; e < ends.length; e++) {
+    let usedStart = null;
+    let usedEnd = null;
+    
+    let solutionLoops = 0;
+    let solutionAlternatives = 0;
+    
+    // Find solution
+    for (let i = 0; (i < maxSolutionLoops) && (solutionAlternatives < maxSolutionAlternatives); i++) {
+        solutionLoops++;
+        randomizeArray();
+        
+        starts.forEach(startPos => {
+            ends.forEach(endPos => {
                 const visited = [];
-                if (DFS(starts[s], ends[e], visited)) {
-                    solutionFound = true;
-                    visited.push(ends[e]);
+                if (DFS(startPos, endPos, visited, marked, 0)) {
+                    // found solution
+                    visited.push(endPos);
+                    
                     if (visited.length < shortest) {
+                        // avoid forks at start or end
+                        let atHome = 0;
+                        shortestPath.forEach(pos => {
+                            if (colorObj.isOwnEdge(pos)) {
+                                atHome++;
+                            }
+                        });
+                        if (atHome == 2) {
+                            solutionAlternatives++;
+                        }
+                        // must save this, even though atHome != 2
+                        usedStart = startPos;
+                        usedEnd = endPos;
+                
                         shortest = visited.length;
                         shortestPath = visited;
                         bestRand = rand.slice();
                     }
-                    //paths.push(visited);
+                }
+            });
+        });
+    }
+
+    const time3 = new Date().getTime();
+    
+    // Solution has been found
+    if (shortestPath.length > 0) {
+        const drawRemoved = function(positions, r, color) {
+            if (DEBUG) {
+                const lineWidth = CTX.lineWidth;
+                CTX.strokeStyle = color;
+                CTX.lineWidth = 2.5;
+                positions.forEach(pos => {
+                    drawCircle(getPositionXY(pos), r*m_s/3);
+                });
+                CTX.lineWidth = lineWidth;
+            }            
+        }
+        const isNeighbours = function(pos1, pos2) {
+            let ok = false;
+            steps.forEach(step => {
+                ok = (ok || pos1.equals(pos2.x + step.dx, pos2.y + step.dy));
+            });
+            return ok;
+        }
+        const checkHome = function(home, pos) {
+            if (home != null) {
+                if (usedStart.equals(pos)) {
+                    usedStart = home;
+                } else if (usedEnd.equals(pos)) {
+                    usedEnd = home;
+                }
+            }            
+        }
+        
+        const removeClusters = function() {
+            let anyRemoved = true;
+            for (let k = 0; (k < maxRemoveClusterLoops) && anyRemoved; k++) {
+                removeClusterLoops++;
+                anyRemoved = false;
+                for (let i = shortestPath.length - 1; i > -1; i--) {
+                    const pos = shortestPath[i];
+                    const neighbours = getNeighbours(pos, shortestPath, 0);
+                    const len = neighbours.length;
+                    let home = null;
+                
+                    let remove = (len == 0);
+                    if (len == 1) {
+                        if (!colorObj.isOwnEdge(pos)) {
+                            remove = true;
+                        } else if (colorObj.isOwnEdge(pos) && colorObj.isOwnEdge(neighbours[0])) {
+                            remove = true;
+                            home = neighbours[0];
+                        }
+                    } else {
+                        if ((len == 2) && isNeighbours(neighbours[0], neighbours[1])) {
+                            if (colorObj.isOwnEdge(pos)) {
+                                const h0 = colorObj.isOwnEdge(neighbours[0]);
+                                const h1 = colorObj.isOwnEdge(neighbours[1]);
+                                remove = (h0 || h1);
+                                home = (h0 ? neighbours[0] : neighbours[1]);
+                            } else {
+                                remove = true;
+                            }
+                        } else if ((len == 3) && (!colorObj.isOwnEdge(pos))) {
+                            const c01 = isNeighbours(neighbours[0], neighbours[1]);
+                            const c02 = isNeighbours(neighbours[0], neighbours[2]);
+                            const c12 = isNeighbours(neighbours[1], neighbours[2]);
+                            remove = ((c01 && c02) || (c01 && c12) || (c02 && c12));
+                        }
+                    }
+                    if (remove) {
+                        shortestPath.splice(i, 1);
+                        checkHome(home, pos);
+                        anyRemoved = true;
+                        drawRemoved([pos], 0.9, "pink");
+                    }
                 }
             }
         }
-        if (i == n - 1) {
-            //console.log(n + " random loops performed");
+        
+        let removeClusterLoops = 0;
+        removeClusters();
+        
+        let removeLoops = 0;
+        let anyRemoved = true;
+        for (let k = 0; (k < maxRemoveLoops) && anyRemoved; k++) {
+            removeLoops++;
+            anyRemoved = false;
+            
+            // remove loops
+            let foundLoop = false;
+            shortestPath.forEach((pos, index) => {
+                if (!foundLoop) {
+                    for (let i = index + 2; (i < shortestPath.length) && (!foundLoop); i = i + 1) {
+                        if (isNeighbours(pos, shortestPath[i])) {
+                            for (let j = index + 2; (j < (i - 1)) && (!foundLoop); j = j + 1) {                            
+                                let copy = shortestPath.slice();
+                                let removed = shortestPath.splice(j, 1);
+                            
+                                removeClusters();
+                            
+                                if (!checkSolution(shortestPath, usedStart, usedEnd)) {
+                                    shortestPath = copy;
+                                } else {
+                                    drawRemoved(removed, 2, "black");
+                                    foundLoop = true;
+                                    anyRemoved = true;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+            
+            // check again for forks
+            /*
+            let atHome = 0;
+            const homes = [];
+            shortestPath.forEach(pos => {
+                if (colorObj.isOwnEdge(pos)) {
+                    atHome++;
+                    homes.push(pos);
+                }
+            });
+            if (atHome != 2) {
+                for (let i = 0; i < homes.length; i++) {
+                    const pos = homes[i];
+                    const home = (i > 0 ? homes[i - 1] : homes[i + 1]);
+                    checkHome(home, pos);
+                    
+                    let copy = shortestPath.slice();
+                    let removed = shortestPath.splice(i, 1);
+                
+                    removeClusters();
+                    
+                    // should be safe to remove, but perform check
+                    if (!checkSolution(shortestPath, usedStart, usedEnd)) {
+                        shortestPath = copy;
+                        checkHome(pos, home); // restoring
+                    } else {
+                        drawRemoved(removed, 1.7, "green");
+                        anyRemoved = true;
+                    }
+                }
+            }
+            */
         }
-    }
-    if (shortestPath.length > 0) {
+        
         if (DEBUG) {
-            console.log(bestRand);
+            //console.log(shortestPath);
+            logVariable({bestRand});
+            logVariable({solutionLoops, solutionAlternatives, removeClusterLoops, removeLoops});
+            const t = new Date().getTime();
+            console.log("time " + (t - time1) + " = " + (time3 - time2) + " + " + (t - time3));
         }
-        return shortestPath; // paths; //
+        return shortestPath;
     }
     return false;
 }
@@ -648,6 +907,38 @@ function getPositionText(pos) {
 function getTextPosition(txt) {
     return new Vector2D(txt.charCodeAt(0) - 65, parseInt(txt.substring(1)) - 1);
 }
+function isIllegalPosition(pos) {
+    return ((pos == null) || 
+            (pos.x < 0) || (pos.x >= m_N) ||
+            (pos.y < 0) || (pos.y >= m_N));
+}
+function getPositionXY(pos) {
+    const x = pos.x*2*m_dx - pos.y*m_dx;
+    const y = pos.y*(m_dy + m_s);
+    return new Vector2D(x, y);
+}
+function getPosition(xy) {
+    const pos = new Vector2D();
+    pos.x = Math.floor((xy.x + m_dx)/(2*m_dx));
+    pos.y = Math.floor((xy.y + m_s)/(3*m_s/2));
+    if (pos.y % 2 > 0.5) {
+        pos.x = Math.floor((xy.x + m_dx)/(2*m_dx) + 0.5);
+    }
+    pos.x = Math.floor(pos.x + pos.y/2);
+    
+    const centerXY = getPositionXY(pos);
+    if (xy.minus(centerXY).length() > m_s*0.9*Math.cos(V30)) {
+        return null;
+    }
+    if (!isIllegalPosition(pos)) {
+        return pos;
+    }
+    return null;
+}
+
+function randomBoard() {
+    loopBoard(function(pos) {setStatus(pos, COLOR_OBJECTS[Math.floor(Math.random()*2 + 1)])});
+}
 
 
 /* GRAPHICS */
@@ -692,25 +983,10 @@ function drawStatus(ctx) {
         drawColoredHex(pos);
     });
     
+    let solved = false;
     if (m_lastMove != null) {
         drawColoredHex(m_lastMove, m_lastColor);
-        
-        const solution = getSolution(m_lastColor);
-        if (solution) {
-            if (DEBUG) {
-                console.log("Solved by " + m_lastColor.name + ", path length: " + solution.length);
-            }
-
-            ctx.strokeStyle = "black";
-            ctx.fillStyle = "yellow";
-            for (let i = 0; i < solution.length; i++) {
-                const pos = solution[i];
-                const a = getPositionXY(pos);
-                fillCircle(a, m_s/2, ctx);
-                drawCircle(a, m_s/2, ctx);
-            }
-        }
-        
+        solved = drawSolution(m_lastColor, ctx);
     }
     
     // mark next move side
@@ -749,6 +1025,8 @@ function drawStatus(ctx) {
         }
     }
     translate(translation);
+    resetStyle(ctx);
+    return solved;
 }
 
 function drawBoard(drawTiles, ctx) {
@@ -775,6 +1053,7 @@ function drawBoard(drawTiles, ctx) {
     }
     
     ctx.fillStyle = RED_COLOR;
+    
     // top
     drawBorder();
     
@@ -788,6 +1067,7 @@ function drawBoard(drawTiles, ctx) {
     scaleBack();
 
     ctx.fillStyle = BLUE_COLOR;
+    
     // left
     rotate(-2*V30);
     scale(-1, 1);
@@ -812,44 +1092,51 @@ function drawBoard(drawTiles, ctx) {
     }
 
     ctx.fillStyle = BOARD_TEXT_COLOR;
-    const fontSize = Math.floor(m_s);
-    ctx.font = fontSize + "px Arial";
-    ctx.textAlign = "center";
-    
-    function drawBoardLabel(x, y, txt) {
-        ctx.fillText(txt, x, y + fontSize/2);
-    }
-    
+    ctx.font = Math.floor(m_s) + "px Arial";
+        
+    const n = m_N - 1;
     for (let i = 0; i < m_N; i++) {
         const row = i + 1;
         const col = String.fromCharCode(65 + i);
-
-        translate(i*2*m_dx, -m_s);
-        drawBoardLabel(3*m_dx/4, -3*m_dy/4, col);
-        drawBoardLabel(-m_N*m_dx + m_dx/4, 5*m_dy/4 + m_N*(m_s + m_dy), col);
+        
+        let q = 1.4;
+        let qx = q*m_dx;
+        const qy = q*m_dy;
+        translate(i*2*m_dx, 0); // center of hexagon in first row
+        drawTextCentered( qy, -qx, col); // note swapping qx and qy
+        translate(-n*m_dx, n*(m_s + m_dy)); // center of hexagon in last row
+        drawTextCentered(-qy,  qx, col); // note swapping qx and qy
+        translateBack();
         translateBack();
         
-        translate(-i*m_dx, i*(m_s + m_dy) - m_s/2 + 3*m_dy/4);
-        drawBoardLabel(-2*m_dx + m_dx/3,  0, row);
-        drawBoardLabel(m_N*2*m_dx - m_dx/3, 0, row);
+        q = 1.7;
+        qx = q*m_dx;
+        translate(-i*m_dx, i*(m_s + m_dy)); // center of hexagon in first column
+        drawTextCentered(-qx, 0, row);
+        translate(n*2*m_dx, 0); // center of hexagon in last column
+        drawTextCentered( qx, 0, row);
+        translateBack();
         translateBack();
     }
     
     // remove all old buttons, TODO remove from ctx
-    BUTTONS.splice(0, BUTTONS.length);
+    BUTTONS.splice(0);
 
-    const buttonR = 40;
+    const buttonPosition = 2.2*BUTTON_R;
     
-    drawButton(buttonR, buttonR, "<", "Back", function() {
+    drawButton(buttonPosition, buttonPosition, "<", "Back", function() {
         window.history.back();
     }, ctx);
-    drawButton(2*buttonR, buttonR, ">", "Forward", function() {
+    
+    drawButton(2*buttonPosition, buttonPosition, ">", "Forward", function() {
         window.history.forward();
     }, ctx);
-    drawButton(3*buttonR, buttonR, "F", "Fullscreen toggle", function() {
+    
+    drawButton(3*buttonPosition, buttonPosition, "F", "Fullscreen toggle", function() {
         toggleFullscreen();
     }, ctx);
-    drawButton(4*buttonR, buttonR, "S", "Share", function() {
+    
+    drawButton(4*buttonPosition, buttonPosition, "S", "Share", function() {
         // https://stackoverflow.com/questions/809057/how-do-i-programmatically-click-on-an-element-in-javascript
         SHARE.dispatchEvent(new MouseEvent("click", {
             "view": window,
@@ -858,34 +1145,27 @@ function drawBoard(drawTiles, ctx) {
         }));
     }, ctx);
 }
+function drawSolution(colorObj, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX;
+    }
+    const solution = getSolution(colorObj);
+    if (solution) {
+        if (DEBUG) {
+            console.log("Solved by " + colorObj.name + ", path length: " + solution.length);
+        }
 
-function isIllegalPosition(pos) {
-    return ((pos == null) || 
-            (pos.x < 0) || (pos.x >= m_N) ||
-            (pos.y < 0) || (pos.y >= m_N));
-}
-function getPositionXY(pos) {
-    const x = pos.x*2*m_dx - pos.y*m_dx;
-    const y = pos.y*(m_dy + m_s);
-    return new Vector2D(x, y);
-}
-function getPosition(xy) {
-    const pos = new Vector2D();
-    pos.x = Math.floor((xy.x + m_dx)/(2*m_dx));
-    pos.y = Math.floor((xy.y + m_s)/(3*m_s/2));
-    if (pos.y % 2 > 0.5) {
-        pos.x = Math.floor((xy.x + m_dx)/(2*m_dx) + 0.5);
+        ctx.strokeStyle = "black";
+        ctx.fillStyle = "yellow";
+        solution.forEach(pos => {
+            const a = getPositionXY(pos);
+            const r = m_s/2;
+            fillCircle(a, r, ctx);
+            drawCircle(a, r, ctx);
+        });
+        return true;
     }
-    pos.x = Math.floor(pos.x + pos.y/2);
-    
-    const centerXY = getPositionXY(pos);
-    if (xy.minus(centerXY).length() > m_s*0.9*Math.cos(V30)) {
-        return null;
-    }
-    if (!isIllegalPosition(pos)) {
-        return pos;
-    }
-    return null;
+    return false;
 }
 
 function drawHexPosition(pos, ctx) {
@@ -919,16 +1199,12 @@ function drawButton(x, y, txt, tooltip, actionFcn, ctx) {
     if (ctx == undefined) {
         ctx = CTX;
     }
-    ctx.fontSize = BUTTON_FONTSIZE;
-
     const translation = translateBack();
     ctx.fillStyle = "gold";
     fillCircle(x, y, BUTTON_R, ctx);
     
-    ctx.fillStyle = "black";
     ctx.font = "bold " + BUTTON_R + "px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(txt, x, y + BUTTON_FONTSIZE/2 - 2);
+    drawTextCentered(x, y, txt, "black", CTX_TRANSPARENT_COLOR, ctx);
     translate(translation);
     
     const button = new Vector2D(x - translation.x, y - translation.y);
@@ -940,12 +1216,11 @@ function drawButton(x, y, txt, tooltip, actionFcn, ctx) {
     BUTTONS.push(button);
 }
 function loopButtons(xy, fcn) {
-    for (let i = 0; i < BUTTONS.length; i++) {
-        const button = BUTTONS[i];
+    BUTTONS.forEach(button => {
         if (xy.minus(button).length() < button.r) {
             fcn(button);
         }
-    }
+    });
 }
 function getEventCoordinates(event) {
     let rect = event.target.getBoundingClientRect();
@@ -955,14 +1230,77 @@ function getEventCoordinates(event) {
 }
 
 
+// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
+function toggleFullscreen() {
+    if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { // Safari
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE11
+            document.msExitFullscreen();
+        }
+    } else {
+        const elem = FULLSCREENDIV;
+    
+        if (elem.requestFullscreen) {
+            // https://stackoverflow.com/questions/23913111/firefox-browser-rejected-fullscreen-change
+            // Mozilla Firefox insists that the code in the event handler executes under 1 second. 
+            // Request for fullscreen was denied because Element.requestFullscreen() was not called from inside a short running user-generated event handler.
+            // seems to happen when trying to open in event handler 'fullscreenchange'
+            elem.requestFullscreen();
+        } else if (elem.webkitRequestFullscreen) { // Safari
+            elem.webkitRequestFullscreen();
+        } else if (elem.msRequestFullscreen) { // IE11
+            elem.msRequestFullscreen();
+        }
+    }
+}
+function fullscreenOpen() {
+    setTimeout(function () {
+        // reset the current origin
+        translateBack();
+    
+        CANVAS.width = window.screen.availWidth;
+        CANVAS.height = window.screen.availHeight;
+
+        initLengths();
+        draw();
+    }, 700);
+}
+function fullscreenClosed() {
+    // reset the current origin
+    translateBack();
+
+    CANVAS.width = WIDTH;
+    CANVAS.height = HEIGHT;
+
+    initLengths();
+    draw();
+}
+
+
 /* QUERY */
 
+//{
+// separate blue and red
 // bin 2: ?N=19&L=bS18&R=00000000000000000000000000000000000000000000000000000000000G1&B=00000000000000000000000000000000000000000000000000000000000W
-// bin 3  ?N=19&L=bS17&S=fViA000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000090000002
+
+// binbase 2: ?N=19&V=1&L=bB2&
+//    S=4000000006000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000062
+// binbase 3: ?N=19&L=bS17&
+//    S=fViA000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000090000002
+// becomes encoded:
+// binbase 4: ?N=19&V=1&L=bP18&
+//    S=G000söQ00aeG00dee00ÅÅQ0R83000420000200000000a4000ä2000000000000000000000000000000000s8000d1
+//      40000000082000000000000000000s000003600903100000000000010006060000000000012006030Reee7%C3%A4%C3%85%C3%85%C3%851
+//      i%5Doh%7C%7Br%7Bfnr%5Dh~~q.~%C3%A5%5D%C3%A5%5Do%C3%B6roqinq~%7B%5Di~eo%C3%85%C3%85r%7B%7Bei%C3%B6%C3%85ffef%7Bqrri%C3%A5%7Boqeq%C3%85erfofehh%5D~fe%C3%A5ih%C3%B6h.err.f%C3%A5%C3%85i%C3%B6%7C2
+/*
+}*/
 function newQuery() {
     const state = {
         N: m_N,
-        lastColor: COLORS.indexOf(m_lastColor),
+        lastColor: COLOR_OBJECTS.indexOf(m_lastColor),
         lastMove: ((m_lastMove == null) ? null : getPositionText(m_lastMove)),
         state: m_status,
     };
@@ -991,7 +1329,7 @@ function newQuery() {
         }
         return query;
     }
-    query = query + QSTATUS + "=" + theState(m_status);
+    query = query + QSTATUS + "=" + encodeURI(theState(m_status));
         
     let href = window.location.href;
     href = href.substring(0, href.indexOf("?")); // does not include "?" if available
@@ -1027,69 +1365,38 @@ function updateShareLinks() {
 
     let share = document.getElementById("ShareLinks");
     
-    for (let i = 0; i < links.length; i++) {
-        let a = document.getElementById(links[i].id);
+    links.forEach(link => {
+        let a = document.getElementById(link.id);
         if (a == null) {
             a = document.createElement("A");
             a.className = "share";
             a.setAttribute("class", "share");
-            a.id = links[i].id;
+            a.id = link.id;
             a.innerHTML = a.id;
             share.appendChild(a);
         }
-        a.href = links[i].url;
-    }
+        a.href = link.url;
+    });
 }
 
-function toggleFullscreen() {
-    if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { // Safari
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { // IE11
-            document.msExitFullscreen();
+
+/* OTHERS */
+
+function logVariable(obj) { // use as logVariables({theVariableNameToBeLogged})
+    // can just as well just log the object directly... but this is cooler
+    // https://stackoverflow.com/questions/4602141/variable-name-as-a-string-in-javascript
+    let s = "";
+    Object.keys(obj).forEach((key, i) => {
+        s = s + key + ": " + Object.values(obj)[i];
+        if (i < (Object.keys(obj).length - 1)) {
+            s = s + ", ";
         }
-    } else {
-        const elem = FULLSCREENDIV;
-    
-        if (elem.requestFullscreen) {
-            // https://stackoverflow.com/questions/23913111/firefox-browser-rejected-fullscreen-change
-            // Mozilla Firefox insists that the code in the event handler executes under 1 second. 
-            // Request for fullscreen was denied because Element.requestFullscreen() was not called from inside a short running user-generated event handler.
-            // seems to happen when trying to open in event handler 'fullscreenchange'
-            elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) { // Safari
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { // IE11
-            elem.msRequestFullscreen();
-        }
-    }
+    });
+    console.log(s);
 }
 
-// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
-function fullscreenOpen() {
-    setTimeout(function () {
-        // reset the current origin
-        translateBack();
-    
-        CANVAS.width = window.screen.availWidth;
-        CANVAS.height = window.screen.availHeight;
 
-        initLengths();
-        draw();
-    }, 700);
-}
-function fullscreenClosed() {
-    // reset the current origin
-    translateBack();
-
-    CANVAS.width = WIDTH;
-    CANVAS.height = HEIGHT;
-
-    initLengths();
-    draw();
-} 
-//]]></script>
+//]]>
+</script>
     </body>
 </html>
