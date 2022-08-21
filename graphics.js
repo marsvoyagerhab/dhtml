@@ -1,6 +1,14 @@
+/**
+ * Mars Voyager, 2022-08-03
+ */
+
+"use strict"; // don't allow hoisting or undeclared variables
+
 const CTX_TRANSLATION_STACK = [];
 const CTX_ROTATION_STACK = [];
 const CTX_SCALE_STACK = [];
+
+const CTX_TRANSPARENT_COLOR = "rgba(0, 0, 0, 0)";
 
 const CTX_DEFAULT = {
     ctx: null,
@@ -25,11 +33,15 @@ class Vector2D {
     toString() {
         return "(" + this.x + ", " + this.y + ")";
     };
-    equals(a) {
-        return ((this.x == a.x) && (this.y == a.y));
+    equals(x, y) {
+        if (typeof x === 'object') {
+            y = x.y;
+            x = x.x;
+        }
+        return ((this.x == x) && (this.y == y));
     }
     isInArray(arr) {
-        return (arr.filter(obj => { return this.equals(obj); }).length != 0);
+        return (arr.find(obj => { return this.equals(obj); }) != undefined);
     }
     clone() {
         return new Vector2D(this.x, this.y);
@@ -141,7 +153,7 @@ function dimCanvas(canvas) {
     }
     const ctx = canvas.getContext("2d");
     resetStyle(ctx);
-    ctx.fillStyle = "rgba(255, 255, 255, 1)"; // 0.45
+    ctx.fillStyle = "rgba(255, 255, 255, 0.45)";
     ctx.fillRect(-canvas.width/2, -canvas.height/2, canvas.width, canvas.height);
     resetStyle(ctx);
 }
@@ -351,6 +363,15 @@ function fillCircle(x, y, r, ctx) {
     ctx.fill();
 }
 
+/**
+ * Write a text in ctx centered at x, y.
+ * @param {float | Vector2D} x  - The first point x-coordinate, or a vector with position.
+ * @param {float} y             - The first point y-coordinate.
+ * @param {String} txt          - The text.
+ * @param {String} [color]      - The text color.
+ * @param {String} [bgColor]    - The background color. Tip: use CTX_TRANSPARENT_COLOR if no background is wanted. 
+ * @param {Object} [ctx]        - The 2D Context.
+ */
 function drawTextCentered(x, y, txt, color, bgColor, ctx) {
     if ((typeof x === 'object') && (x !== null)) {
         ctx = bgColor;
@@ -364,34 +385,24 @@ function drawTextCentered(x, y, txt, color, bgColor, ctx) {
         ctx = CTX_DEFAULT.ctx;
     }
     const h = getTextHeight(txt, ctx);
+    let styleChanged = false;
     
-    ctx.fillStyle = bgColor;
-    const width = getTextWidth(txt, ctx)*3; // allow for wider previous text
-    ctx.fillRect(x - width/2, y - h, width, h*1.1);
-
-    ctx.fillStyle = color;
-    ctx.textAlign = "center";
-    ctx.fillText(txt, x, y);
-
-    resetStyle(ctx);
-}
-function drawText(x, y, txt, color, ctx) {
-    if ((typeof x === 'object') && (x !== null)) {
-        ctx = color;
-        color = txt;
-        txt = y;
-        y = x.y;
-        x = x.x;
+    if (bgColor != undefined) {
+        const w = getTextWidth(txt, ctx)*3; // allow for wider previous text
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(x - w/2, y - h, w, h*1.1);
+        styleChanged = true;
     }
-    if (ctx == undefined) {
-        ctx = CTX_DEFAULT.ctx;
+    if (color != undefined) {
+        ctx.fillStyle = color;
+        styleChanged = true;
     }
-
-    ctx.fillStyle = color;
     ctx.textAlign = "center";
-    ctx.fillText(txt, x, y + getTextHeight(txt, ctx)/2);
-
-    resetStyle(ctx);
+    ctx.fillText(txt, x, y + h/2 - getTextDescent(txt, ctx));
+    
+    if (styleChanged) {
+        resetStyle(ctx);
+    }
 }
 
 function drawAxes(wx, wy) {
@@ -410,10 +421,30 @@ function drawAxes(wx, wy) {
 /** SUPPORTING FUNCTIONS */
 
 function getTextWidth(txt, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX_DEFAULT.ctx;
+    }
     return ctx.measureText(txt).width;
 }
 function getTextHeight(txt, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX_DEFAULT.ctx;
+    }
     const textMetrics = ctx.measureText(txt);
-    //return Math.abs(textMetrics.fontBoundingBoxAscent) + Math.abs(textMetrics.fontBoundingBoxDescent);
     return Math.abs(textMetrics.actualBoundingBoxAscent) + Math.abs(textMetrics.actualBoundingBoxDescent);
+}
+function getTextAscent(txt, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX_DEFAULT.ctx;
+    }
+    const textMetrics = ctx.measureText(txt);
+    return textMetrics.actualBoundingBoxAscent;
+}
+function getTextDescent(txt, ctx) {
+    if (ctx == undefined) {
+        ctx = CTX_DEFAULT.ctx;
+    }
+    const textMetrics = ctx.measureText(txt);
+    // positive downwards
+    return textMetrics.actualBoundingBoxDescent;
 }
