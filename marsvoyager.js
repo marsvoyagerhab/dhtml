@@ -1,6 +1,6 @@
 "use strict"; // don't allow hoisting or undeclared variables
 
-function updatePage(documentLastModified) {
+function updatePage() {
     const DEBUGMAIN = (true && (location.href.indexOf("file:") == 0));
 
     const TITLE = "Mars Voyager on Creativity";
@@ -8,7 +8,7 @@ function updatePage(documentLastModified) {
     
     let depth = getElementAttribute(FOOTER, "data-depth", "");
     let topic = getElementAttribute(FOOTER, "data-topic", null);
-    //let version = getElementAttribute(FOOTER, "data-version", null);
+    //let version = getElementAttribute(FOOTER, "data-version", null); // not shown anylonger
     let ownIcons = getElementAttribute(FOOTER, "data-ownicons", false); //  for check of meta tags
     let visitorsId = getElementAttribute(FOOTER, "data-visitors", null);
 
@@ -48,8 +48,8 @@ function updatePage(documentLastModified) {
     }
     
     if (FOOTER != null) {
+        /*
         if ((!DEBUGMAIN) && (visitorsId != null)) {
-            /*
             // size 60%
             let name = "web counter"; // or hit counter
         
@@ -66,8 +66,8 @@ function updatePage(documentLastModified) {
             a.appendChild(img);
             FOOTER.appendChild(document.createTextNode("Visitors: "));
             FOOTER.appendChild(a);
-            */
         }
+        */
         
         let div = document.createElement("DIV");
         
@@ -82,9 +82,7 @@ function updatePage(documentLastModified) {
         } else {
             span.appendChild(document.createTextNode(TITLE));
         }
-        //if (((topic != null) && (topic != "")) || ((version != null) && (version != ""))) {
-            span.appendChild(document.createTextNode(" : "));
-        //}
+        span.appendChild(document.createTextNode(" : "));
         if ((topic != null) && (topic != "")) {
             span.appendChild(document.createTextNode(topic));
         }
@@ -100,20 +98,13 @@ function updatePage(documentLastModified) {
             // no seconds
             return new Date(documentLastModified).toISOString().substring(0, 16) + "Z";
         }
-
         
-        //if ((version != null) && (version != "")) {
-            let small = document.createElement("SMALL");
-            if ((topic != null) && (topic != "")) {
-                small.appendChild(document.createTextNode(", "));
-            }
-            if (documentLastModified == undefined) {
-                small.appendChild(document.createTextNode(getISODate(document.lastModified)));
-            } else {
-                small.appendChild(document.createTextNode(getISODate(documentLastModified)));
-            }
-            span.appendChild(small);
-        //}
+        let small = document.createElement("SMALL");
+        if ((topic != null) && (topic != "")) {
+            small.appendChild(document.createTextNode(", "));
+        }
+        small.appendChild(document.createTextNode(getISODate(document.lastModified))); // in Git this will be the last update of the repository
+        span.appendChild(small);
         div.appendChild(span);
         
         div.appendChild(document.createElement("BR"));
