@@ -21,6 +21,7 @@
         <meta name="description" property="og:description" content="Explore Maths"/>
         <meta property="og:image:alt" content="Mars Voyager on Hex"/>
         <meta property="og:type" content="Science"/>
+
         <!-- min 200 x 200 for Facebook -->
         <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
 
@@ -52,14 +53,6 @@
         h1 {
             padding: 15px 0px;
         }
-        img#Pen {
-            z-index: 10;
-            position: absolute;
-            left: 0px;
-            top: 0px;
-            width: 100px;
-            height: 100px;
-        }
         div {
             width: 400px;
         }
@@ -86,20 +79,21 @@
         </div>
         
         <div style="padding:15px 0px;">
-            <div id="ShareLinks"><div style="padding-bottom:10px;">Share your move:</div></div>
+            <div id="ShareLinks"><div style="padding-bottom:10px;">Share your move: <input type="button" id="ShareButton" value="Share"/></div></div>
         
             <p>
-                <input type="button" id="ShareButton" value="Share"/>
-                <input type="button" id="Fullscreen"  value="Fullscreen"/>
-                <!-- for debugging -->
-                <input type="button" id="random"      value="Random"/>
-                <input type="button" id="recalc"      value="Recalc"/>
+                <input type="button"   id="Fullscreen"  value="Full screen"/>
+                <div id="Debug">
+                    <input type="button"   id="random"  value="Random"/>
+                    <input type="button"   id="recalc"  value="Recalc"/>
+                    <input type="checkbox" id="edit"/>
+                </div>
             </p>
         </div>
         
         <div>
             <ul>
-                <li><a href="hex.html">New game</a></li>
+                <li><a id="New" href="hex.html">New game</a></li>
         
                 <li><label for="Size">Board size:</label>
                     <select id="Size" selectedIndex="3">
@@ -128,17 +122,32 @@
 <script>
 //<![CDATA[
 "use strict"; // don't allow hoisting or undeclared variables
-updatePage();
+// to be modified at deployment:
 const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
-const DEBUG = (true && LOCALEXECUTION);
+const SETTINGS = {
+     fileLastModified: "2022-08-31T21:45",
+     debug: (false && LOCALEXECUTION),
+};
+updatePage(SETTINGS);
+const DEBUG = SETTINGS.debug;
+const FILE_NAME = "hex.html";
 const SHAREBASELINK = "https://marsvoyagerhab.github.io/dhtml/math/hex.html";
 
 let m_href = window.location.href;
+let m_previousHref = m_href;
+let m_firstDraw = true;
 if (DEBUG && (m_href.indexOf("?") > -1)) {
-    console.log("Query length: " + m_href.substring(m_href.indexOf("?")).length + " of " + m_href.length);
+    //console.log("Query length: " + m_href.substring(m_href.indexOf("?")).length + " of " + m_href.length);
 }
 
 const CANVAS = document.getElementById("Canvas");
+const WIDTH = CANVAS.width;
+const HEIGHT = CANVAS.height;
+let m_screenWidth = 0;
+let m_screenHeight = 0;
+let m_screenQuota = 0;
+let m_fullscreen = false;
+
 const CTX = CANVAS.getContext("2d");
 CTX.strokeStyle = "black";
 CTX.fillStyle = "white";
@@ -146,19 +155,15 @@ CTX.lineWidth = 1;
 CTX.font = "18px Arial";
 initializeCtxDefault(CANVAS);
 
-const WIDTH = CANVAS.width;
-const HEIGHT = CANVAS.height;
-
 const BUTTONS = [];
-const BUTTON_R = 14;
 
 const TEXTCOLOR = "#ACA39A"; // same as in CSS
 const DARKTEXTCOLOR = "#03081e"; // CSS background
 
-const RED_COLOR = "#ee0000";
-const BLUE_COLOR = "#0000ee";
-const BOARD_COLOR = "white";
-const BOARD_TEXT_COLOR = "#eeeeee";
+const RED_COLOR = "#cc0000";
+const BLUE_COLOR = "#0000cc";
+const BOARD_COLOR = "#eeeeee";
+const BOARD_TEXT_COLOR = BOARD_COLOR;
 const BACKGROUND_COLOR = DARKTEXTCOLOR;
 
 const RESERVED = ";/?:@&=+,$"; // what about #
@@ -177,8 +182,8 @@ if (Math.pow(BINBASE, NBIN) > BIN.length) {
     console.log("Error: BIN defined too short (" + BIN.length + ") for NBIN=" + NBIN + ", required length: " + Math.pow(BINBASE, NBIN));
 }
 if (DEBUG) {
-    console.log(encodeURI(BIN));
-    console.log(Math.log(BIN.length)/Math.log(BINBASE) + " " + Math.pow(BINBASE, NBIN) + " <=? " + BIN.length);
+    //console.log(encodeURI(BIN));
+    //console.log(Math.log(BIN.length)/Math.log(BINBASE) + " " + Math.pow(BINBASE, NBIN) + " <=? " + BIN.length);
 }
 const BINZERO = "0".repeat(NBIN);
 function nBinLength(n) {
@@ -198,37 +203,48 @@ const COLOR_OBJECTS = [
         name:  "Red",
         shortName: "r",
         color: RED_COLOR,
-        lineWidth: 2,
+        lineWidth: 1.5,
         shadowBlur: 1,
         empty: false,
-
-        getStartPos: function(c) { return new Vector2D(c, 0); },
-        getEndPos:   function(c) { return new Vector2D(c, m_N - 1); },
+        markColor: "gold",
 
         isStartEdge: function(pos) { return (pos.y == 0); },
-        isOwnEdge:  function(pos) { return ((pos.y == 0) || (pos.y == (m_N - 1))); },
+        isEndEdge:   function(pos) { return (pos.y == (m_N - 1)); },
+        isOwnEdge:   function(pos) { return (this.isStartEdge(pos) || this.isEndEdge(pos)); },
     },
     {
         name:  "Blue",
         shortName: "b",
         color: BLUE_COLOR,
-        lineWidth: 2,
+        lineWidth: 1.5,
         shadowBlur: 1,
         empty: false,
-        
-        getStartPos: function(r) { return new Vector2D(0,       r); },
-        getEndPos:   function(r) { return new Vector2D(m_N - 1, r); },
+        markColor: "#efc700", // darker than "gold" = "#ffd700"
 
         isStartEdge: function(pos) { return (pos.x == 0); },
-        isOwnEdge: function(pos) { return ((pos.x == 0) || (pos.x == (m_N - 1))); },
+        isEndEdge:   function(pos) { return (pos.x == (m_N - 1)); },
+        isOwnEdge:   function(pos) { return (this.isStartEdge(pos) || this.isEndEdge(pos)); },
     },
 ];
 
 const RED_OBJECT = COLOR_OBJECTS[1];
 const BLUE_OBJECT = COLOR_OBJECTS[2];
-RED_OBJECT.next = BLUE_OBJECT;
-BLUE_OBJECT.next = RED_OBJECT;
-COLOR_OBJECTS[0].next = RED_OBJECT;
+{
+    RED_OBJECT.next = BLUE_OBJECT;
+    BLUE_OBJECT.next = RED_OBJECT;
+    COLOR_OBJECTS[0].next = RED_OBJECT;
+}
+
+// steps to neighbours of a hexagon, prio direction for red from start to end
+const steps = [ { dx:  0, dy:  1 }, // 0 left  bottom
+                { dx:  1, dy:  1 }, // 1 right bottom
+                { dx: -1, dy:  0 }, // 2 left
+                { dx:  1, dy:  0 }, // 3 right
+                { dx: -1, dy: -1 }, // 4 left  top
+                { dx:  0, dy: -1 }, // 5 right top
+              ];
+
+const HEX_LINE_QUOTE = 20; // usage lineWidth*m_s/HEX_LINE_QUOTE
 
 const QN = "?N";
 const QVERSION = "&V";
@@ -236,11 +252,13 @@ const QLAST = "&L";
 const QSTATUS = "&S";
 
 const N_DEFAULT = 11;
-let m_N = getQueryValue(QN, N_DEFAULT);
+let m_N = parseInt(getQueryValue(QN, N_DEFAULT));
 const VERSION = getQueryValue(QVERSION, 1);
 let m_status;
 
-const mc_translation = {};
+const TRANSLATION = {};
+let m_scrollTop  = null;
+let m_scrollLeft = null;
 
 let m_lastColor = RED_OBJECT;
 let m_lastMove = null;
@@ -261,40 +279,29 @@ if (last != null) {
     if ((m_lastMove.x >= m_N) || (m_lastMove.y >= m_N)) {
         m_lastMove = null;
     }
+    window.scrollTo(CANVAS.getBoundingClientRect().left, CANVAS.getBoundingClientRect().top);
 }
 
-const V30 = Math.PI/6;
-let m_s; // hex tile side length
-let m_dx;
-let m_dy;
-initLengths();
-function initLengths() {
-    m_s = Math.min(CANVAS.height, CANVAS.width)/(2*m_N + 1.2);
-    m_dx = m_s*Math.cos(V30);
-    m_dy = m_s*Math.sin(V30);
-}
-
-const SHARE = document.getElementById("ShareButton");
+let ms_share = document.getElementById("ShareButton");
 if (navigator.share) {
     // https://css-tricks.com/how-to-use-the-web-share-api/      
-    // iOS Safari, desktop Safari
-    // Android Chrome, Android Firefox                  
-    SHARE.addEventListener("click", event => {
+    // iOS Safari, desktop Safari, Android Chrome, Android Firefox                  
+    ms_share.addEventListener("click", event => {
         if (navigator.share) {
             navigator.share({
                 title: document.title,
-                text: window.location.href,
-                url: window.location.href,
+                text:  window.location.href,
+                url:   window.location.href,
             });
         }
     });
 } else {
-    if (!DEBUG) {
-        SHARE.remove();
-    } else {
-        SHARE.addEventListener("click", event => {
+    if (DEBUG) {
+        ms_share.addEventListener("click", event => {
             console.log("Share button clicked, but not enabled.");
         });        
+    } else {
+        ms_share.remove();
     }
 }
 /*
@@ -303,12 +310,12 @@ if (navigator.share) {
 const SIZE = document.getElementById("Size");
 const options = SIZE.children;
 for (let i = 0; i < options.length; i++) {
-    if (options[i].value == m_N) {
+    if (parseInt(options[i].value) == m_N) {
         SIZE.selectedIndex = i;
     }
 }
 SIZE.addEventListener('change', function(event) {
-    const newN = SIZE.options.item(SIZE.options.selectedIndex).value;
+    const newN = parseInt(SIZE.options.item(SIZE.options.selectedIndex).value);
 
     if (newN != m_N) {
         // reset the current ctx origin
@@ -335,38 +342,19 @@ SIZE.addEventListener('change', function(event) {
         }, newN);
         m_N = newN;
         
-        initialize(newStatus);
-        draw();
-        newQuery();
-        drawStatus();
+        draw(newStatus);
     }
 });
 
-initialize();
+const V30 = Math.PI/6;
+let m_s; // hex tile side length
+let m_dx;
+let m_dy;
+let m_borderY;
+
+let m_screenInterval = null;
+
 draw();
-
-const FULLSCREENDIV = document.getElementById("FullscreenDiv");
-document.getElementById("Fullscreen").addEventListener('click', function() {
-    toggleFullscreen();
-});
-
-document.addEventListener('fullscreenchange', function(event) {
-    // this event is called after fullscreen request
-    if (document.fullscreenElement) {
-        fullscreenOpen(); 
-    } else {
-        fullscreenClosed();
-    }
-});
-window.matchMedia('(orientation: portrait)').addEventListener('change', function(event) {
-    // https://dev.to/smpnjn/how-to-detect-device-orientation-with-javascript-29e5
-    toggleFullscreen();
-});
-window.addEventListener('orientationchange', function(event) {
-    // https://www.codegrepper.com/code-examples/javascript/detect+screen+rotation+javascript
-    // event.target.screen.orientation;
-    toggleFullscreen();
-});
 
 window.addEventListener('popstate', function(event) {
     const state = event.state;
@@ -380,7 +368,6 @@ window.addEventListener('popstate', function(event) {
     
     // reset the current origin
     translateBack();
-    initialize();
     draw();
     
     //let href = window.location.href;
@@ -388,16 +375,35 @@ window.addEventListener('popstate', function(event) {
     //window.location.href = href + state.query;
 });
 
-CANVAS.addEventListener('click', function(event) {
+CANVAS.addEventListener('mousedown', function(event) {
     const xy = getEventCoordinates(event);
     const move = getPosition(xy);
-   
+    if (move != null) { // only when mouse down on valid tile position
+        m_scrollTop  = window.scrollTop;
+        m_scrollLeft = window.scrollLeft;
+    } else {
+        m_scrollTop  = null;
+        m_scrollLeft = null;
+    }
     if (move != null) {
         if ((m_lastMove != null) && m_lastMove.equals(move)) {
+            m_href = m_previousHref;
             m_lastMove = null;
         } else if (!getStatus(move).empty) {
-            return;
+            if (DEBUG) {
+                if (document.getElementById("edit").checked) {
+                    m_previousHref = m_href;
+                    if (m_lastMove != null) {
+                        setStatus(m_lastMove, m_lastColor);
+                    }
+                    m_lastColor = getStatus(move).next;
+                    m_lastMove = move;
+                }
+            } else {
+                return;
+            }
         } else {
+            m_previousHref = m_href;
             // first set previous move
             if (m_lastMove != null) {
                 setStatus(m_lastMove, m_lastColor);
@@ -417,6 +423,13 @@ CANVAS.addEventListener('click', function(event) {
         });
     }
 });
+CANVAS.addEventListener('mouseup', function(event) {
+    // avoid accidental pan while clicking
+    if ((m_scrollTop != null) && (m_scrollLeft != null)) {
+        window.scrollTo(m_scrollLeft, m_scrollTop);
+    }
+});
+// show tooltip
 CANVAS.addEventListener('mousemove', function(event) {
     // https://stackoverflow.com/questions/17064913/display-tooltip-in-canvas-graph
     const xy = getEventCoordinates(event);
@@ -430,66 +443,134 @@ CANVAS.addEventListener('mousemove', function(event) {
     }
 }, false);
 
+document.getElementById("Fullscreen").addEventListener('click', function() {
+    openFullscreen();
+});
+document.addEventListener('fullscreenchange', function(event) {
+    if (m_fullscreen) {
+        closeFullscreen();
+    } else {
+        m_fullscreen = true;
+    }
+});
+window.matchMedia("(orientation: portrait)").addEventListener("change", function(event) {
+    // https://dev.to/smpnjn/how-to-detect-device-orientation-with-javascript-29e5
+    if (m_fullscreen) {
+        draw();
+    }
+});
+
 if (DEBUG) {
+    const checkBothColors = function() {
+        const initLastMove = function() {
+            do {
+                const move = new Vector2D(Math.floor(Math.random()*m_N), Math.floor(Math.random()*m_N));
+                if (getStatus(move) === m_lastColor) {
+                    m_lastMove = move;
+                }
+            } while (m_lastMove == null);
+        };
+        m_lastMove = null;
+        m_lastColor = BLUE_OBJECT;
+        initLastMove();
+        
+        const blueSolution = getSolution(m_lastColor);
+        if (blueSolution) {
+            return blueSolution;
+        } else {
+            m_lastMove = null;
+            m_lastColor = RED_OBJECT;
+            initLastMove();
+
+            const redSolution = getSolution(m_lastColor);
+            if (redSolution) {
+                return redSolution;
+            }
+        }
+        return false;
+    };
     document.getElementById("random").addEventListener('click', function() {
         const binLength = nBinLength(m_N);
         m_status = "0".repeat(binLength);
 
-        randomBoard();
-
-        m_lastMove = new Vector2D(1,1);
-        m_lastColor = BLUE_OBJECT;
-
-        newQuery();
-    
-        drawBoard(false);
-        const solved = drawStatus();
-        
-        if (!solved) {
-            m_lastMove = new Vector2D(1,1);
-            m_lastColor = RED_OBJECT;
-
-            newQuery();
-    
-            drawBoard(false);
-            drawStatus();
+        let goal = 40; // N=19, 500-242000 loops
+        if (m_N == 3) {
+            goal = 3; // max 33 after 100000 loops
         }
+        if (m_N == 6) {
+            goal = 13; // max 14 after 100000 loops
+        }
+        if (m_N == 9) {
+            goal = 22; // max 23 after 100000 loops
+        }
+        if (m_N == 11) {
+            goal = 26; // max 27 after 100000 loops
+        }
+        if (m_N == 13) {
+            goal = 32; // max 33 after 100000 loops
+        }
+        if (m_N == 14) {
+            goal = 32; // max 33 after 100000 loops
+        }
+        if (m_N == 19) {
+            goal = 51; // max 52 after 35000 loops
+        }
+        let i = 1000;
+        let found = false;
+        const sols = new Array(2*goal);
+        do {
+            randomBoard();
+            const solution = checkBothColors();
+            if (solution) {
+                if (solution.length > goal) {
+                    found = true;
+                }
+                if (sols[solution.length] == undefined) {
+                    sols[solution.length] = 1;
+                }
+                sols[solution.length]++;
+            }
+            console.log("loop random");
+            i--;
+        } while ((!found) && (i > 0));
+        console.log(sols);
+        // 52 steps, after 35000 loops :: ?N=19&V=1&L=rB2&S=PQNMDQPGHDEGEQDQPDPNNEGGNQHMGDHEGMEDGNGEHMNMPNQDGPPPPQENQPDENMEEMNGGDGEHENQEPQMHNPGMGPDPNENMEGDQPPDMHGMHDEHEPEQQDHPNMNPQ2
+        
+        newQuery();
+        drawBoard(false);
+        drawStatus();
     });
     document.getElementById("recalc").addEventListener('click', function() {
-        m_lastMove = new Vector2D(1,1);
-        m_lastColor = BLUE_OBJECT;
-
-        newQuery();
-    
-        drawBoard(false);
-        const solved = drawStatus();
-        
-        if (!solved) {
-            m_lastMove = new Vector2D(1,1);
-            m_lastColor = RED_OBJECT;
-    
-            drawBoard(false);
-            drawStatus();
-        }
+        checkBothColors();
     });
 } else {
-    document.getElementById("random").remove();
-    document.getElementById("recalc").remove();
+    document.getElementById("Debug").remove();
 }
 
-function initialize(state) {
-    if (state == undefined) {
-        state = decodeURI(getQueryValue(QSTATUS, ""));
-        if (DEBUG) {
-            console.log(state);
-            console.log(encodeURI(state));
+function setScreenSize() {
+    const w = window.screen.availWidth;
+    const h =  window.screen.availHeight;
+    const q = 3/2;//CANVAS.width/CANVAS.height; // 3/2
+    if (w > h) { // landscape
+        if (w/q < h) {
+            CANVAS.width = w;
+            CANVAS.height = w/q;
+        } else {
+            CANVAS.width = h*q;
+            CANVAS.height = h;
+        }
+    } else if (w < h) { // portrait
+        if (h*q < w) {
+            CANVAS.width = h;
+            CANVAS.height = h*q;
+        } else {
+            CANVAS.width = w;
+            CANVAS.height = w/q;
         }
     }
-    const binLength = nBinLength(m_N);
-    const statusDefault = "0".repeat(binLength);
-    m_status = (state + statusDefault).substring(0, binLength);
-
-    initLengths();
+    m_screenHeight = h;
+    m_screenWidth = w;
+    m_screenQuota = w/h;
 }
 
 function getStatus(pos) {
@@ -512,333 +593,69 @@ function setStatus(pos, colorObj) {
     
     const colorInt = COLOR_OBJECTS.indexOf(colorObj);
     
-    const w = getChar(getInt(c) + colorInt*Math.pow(BINBASE, i));
+    let remove = COLOR_OBJECTS.indexOf(getStatus(pos));
+    
+    const w = getChar(getInt(c) + (colorInt - remove)*Math.pow(BINBASE, i));
     m_status = m_status.substring(0, n) + w + m_status.substring(n + 1);
 }
+
 function getSolution(colorObj) {
-    const time1 = new Date().getTime();
-    
     if (colorObj.empty) {
         return false;
     }
-    const maxSolutionLoops = Math.max(10, 30 - m_N);
-    const maxSolutionAlternatives = 3;
-    const maxRemoveClusterLoops = 10;
-    const maxRemoveLoops = 12;
+    // prio direction
+    let dir = [ 0, 1, 2, 3, 4, 5 ];
+    if (colorObj === BLUE_OBJECT) {
+        dir = [ 3, 1, 5, 4, 0, 2 ];
+    }
     
     const marked = [];
     const starts = [];
-    const ends = [];
     
-    let rand = [0, 1, 2, 3, 4, 5];
-    if (colorObj === RED_OBJECT) {
-        rand = [ 0, 1, 2, 3, 4, 5 ];
-    } else {
-        rand = [ 5, 4, 3, 2, 1, 0 ];
-    }
-    const randSteps = new Array(6);
-    const steps = [ {dx:  0, dy:  1}, // 0
-                    {dx:  1, dy:  1}, // 1
-                    {dx:  1, dy:  0}, // 2
-                    {dx: -1, dy:  0}, // 3
-                    {dx: -1, dy: -1}, // 4
-                    {dx:  0, dy: -1}, // 5
-                  ];
-
-    const setMark = function(arr, pos) {
-        if (getStatus(pos) === colorObj) {
-            arr.push(pos);
-        } else if ((m_lastColor === colorObj) && pos.equals(m_lastMove)) {
-            arr.push(pos);
-        }
-    }
-    // the start and goal sides
-    for (let i = 0; i < m_N; i++) {
-        setMark(starts, colorObj.getStartPos(i));
-        setMark(ends,   colorObj.getEndPos(i));
-    }
     loopBoard(function(pos) {
-        setMark(marked, pos);
+        if ((getStatus(pos) === colorObj) || ((m_lastColor === colorObj) && pos.equals(m_lastMove))) {
+            marked.push(pos);
+            pos.path = [];
+            if (colorObj.isStartEdge(pos)) {
+                starts.push(pos);
+                pos.path.push(pos);
+            }
+        }
     });
-    
+
     const getVectorObjectFromArray = function(arr, x, y) {
         return arr.find(obj => { return ((obj.x == x) && (obj.y == y)); });
     }
-
-    const Neighbours = new Array();
-    const getNeighbours = function(pos, marked, level) {
-        let pop = true;
-        if (Neighbours.length < (level + 1)) {
-            Neighbours.push([]);
-            pop = false;
-        }
-        const neighbours = Neighbours[level];
-        if (pop) {
-            neighbours.splice(0);
-        }
-        
-        randSteps.forEach(step => {
-            const p = getVectorObjectFromArray(marked, pos.x + step.dx, pos.y + step.dy);
-            if (p != undefined) {
-                neighbours.push(p);
-            }
-        });
-        return neighbours;
-    }
-    // https://www.baeldung.com/cs/check-if-two-nodes-are-connected
-    // Depth First Traversal
-    const DFS = function(u, v, visited, marked, level) {
-        if (u.equals(v)) {
-            return true;
-        }
-        if (u.isInArray(visited)) {
-            return false;
-        }
-        visited.push(u);
-        return (getNeighbours(u, marked, level).find(neighbour => { return DFS(neighbour, v, visited, marked, level + 1) }) != undefined);
-    }
     
-    const initRandSteps = function() {
-        rand.forEach((r, i) => {
-            randSteps[i] = steps[r];
-        });        
-    }
-    const randomizeArray = function() {
-        rand.forEach((r1, i) => {
-            const ri = (i > 0 ? Math.floor(Math.random()*(i - 1)) : 0) + (i < 5 ? (1 + Math.floor(Math.random()*(5 - i))) : 0);
-            const r2 = rand[ri];
-            rand[i] = r2;
-            rand[ri] = r1;
-        });
-        
-        // ?N=19&V=1&L=rB2&S=HQPEHGDMGHEDMDEMEHPHMGDQGHEMPDHPHQNNDPHEDMEHEEDMQDPMEHHHNHQEEPDHHMNPMPGQMHHGQMPNGMNDQQEQGMNGQNNNPDQPMNEPNEMMPGQNGEQQQMGE2
-        //rand = [2,5,0,4,3,1];
-        
-        // N=19&V=1&L=rB2&S=DGNEENQEENDNGDGGNMHNQPQHGHHGDQGPQMNHQGDPPMDNEGPEGMNQDHPDHNGPNPHMMEGHNGNEDGNPGPEHDMQQEQMNQNNQGQMNEDGEHNMQHEHPQEMGEGQHQGEP1
-        //rand = [1,3,0,5,2,4];
-        
-        // N=13&V=1&L=bB2&S=DMDMMEQQMPMHMEQPHPDMNMHNHPNHGPEENQPHGEGGHQDPQMDEMQNPMMGD1
-         //rand = [1,0,4,5,3,2];
-        
-        initRandSteps();
-    }
-    
-    const checkSolution = function(solution, startPos, endPos) {
-        let solutionFound = false;
-        for (let i = 0; (i < maxSolutionLoops) && (!solutionFound); i++) {
-            if (i != 0) { // no random in first loop
-                randomizeArray();
-            }
-            if (DFS(startPos, endPos, [], solution, 0)) {
-                solutionFound = true;
-            }
-        }
-        return solutionFound;
-    }
-
-    const time2 = new Date().getTime();
-    
-    let shortest = m_N*m_N;
-    let shortestPath = [];
-    let bestRand = rand.slice();
-    initRandSteps();
-    
-    let usedStart = null;
-    let usedEnd = null;
-    
-    let solutionLoops = 0;
-    let solutionAlternatives = 0;
-    
-    // Find solution
-    for (let i = 0; (i < maxSolutionLoops) && (solutionAlternatives < maxSolutionAlternatives); i++) {
-        solutionLoops++;
-        randomizeArray();
-        
-        starts.forEach(startPos => {
-            ends.forEach(endPos => {
-                const visited = [];
-                if (DFS(startPos, endPos, visited, marked, 0)) {
-                    // found solution
-                    visited.push(endPos);
-                    
-                    if (visited.length < shortest) {
-                        // avoid forks at start or end
-                        let atHome = 0;
-                        shortestPath.forEach(pos => {
-                            if (colorObj.isOwnEdge(pos)) {
-                                atHome++;
-                            }
+    let fronts = starts;
+    let found = null;
+    // Breadth first search
+    for (let i = m_N*m_N; (i > 0) && (found == null); i--) { // i is not used as index
+        let nexts = [];
+        for (let j = 0; (j < fronts.length) && (found == null); j++) {
+            const pos = fronts[j];
+            
+            for (let k = 0; (k < 6) && (found == null); k++) {
+                const neighbour = getVectorObjectFromArray(marked, pos.x + steps[dir[k]].dx, pos.y + steps[dir[k]].dy);
+                if (neighbour != undefined) {
+                    const neighbourPath = neighbour.path;
+                    if (neighbourPath.length == 0) {
+                        pos.path.forEach(s => {
+                            neighbourPath.push(s);
                         });
-                        if (atHome == 2) {
-                            solutionAlternatives++;
-                        }
-                        // must save this, even though atHome != 2
-                        usedStart = startPos;
-                        usedEnd = endPos;
-                
-                        shortest = visited.length;
-                        shortestPath = visited;
-                        bestRand = rand.slice();
+                        neighbourPath.push(neighbour);
+                        nexts.push(neighbour);
+                    }
+                    if (colorObj.isEndEdge(neighbour)) {
+                        found = neighbour;
                     }
                 }
-            });
-        });
+            }
+        }
+        fronts = nexts;
     }
-
-    const time3 = new Date().getTime();
-    
-    // Solution has been found
-    if (shortestPath.length > 0) {
-        const drawRemoved = function(positions, r, color) {
-            if (DEBUG) {
-                const lineWidth = CTX.lineWidth;
-                CTX.strokeStyle = color;
-                CTX.lineWidth = 2.5;
-                positions.forEach(pos => {
-                    drawCircle(getPositionXY(pos), r*m_s/3);
-                });
-                CTX.lineWidth = lineWidth;
-            }            
-        }
-        const isNeighbours = function(pos1, pos2) {
-            let ok = false;
-            steps.forEach(step => {
-                ok = (ok || pos1.equals(pos2.x + step.dx, pos2.y + step.dy));
-            });
-            return ok;
-        }
-        const checkHome = function(home, pos) {
-            if (home != null) {
-                if (usedStart.equals(pos)) {
-                    usedStart = home;
-                } else if (usedEnd.equals(pos)) {
-                    usedEnd = home;
-                }
-            }            
-        }
-        
-        const removeClusters = function() {
-            let anyRemoved = true;
-            for (let k = 0; (k < maxRemoveClusterLoops) && anyRemoved; k++) {
-                removeClusterLoops++;
-                anyRemoved = false;
-                for (let i = shortestPath.length - 1; i > -1; i--) {
-                    const pos = shortestPath[i];
-                    const neighbours = getNeighbours(pos, shortestPath, 0);
-                    const len = neighbours.length;
-                    let home = null;
-                
-                    let remove = (len == 0);
-                    if (len == 1) {
-                        if (!colorObj.isOwnEdge(pos)) {
-                            remove = true;
-                        } else if (colorObj.isOwnEdge(pos) && colorObj.isOwnEdge(neighbours[0])) {
-                            remove = true;
-                            home = neighbours[0];
-                        }
-                    } else {
-                        if ((len == 2) && isNeighbours(neighbours[0], neighbours[1])) {
-                            if (colorObj.isOwnEdge(pos)) {
-                                const h0 = colorObj.isOwnEdge(neighbours[0]);
-                                const h1 = colorObj.isOwnEdge(neighbours[1]);
-                                remove = (h0 || h1);
-                                home = (h0 ? neighbours[0] : neighbours[1]);
-                            } else {
-                                remove = true;
-                            }
-                        } else if ((len == 3) && (!colorObj.isOwnEdge(pos))) {
-                            const c01 = isNeighbours(neighbours[0], neighbours[1]);
-                            const c02 = isNeighbours(neighbours[0], neighbours[2]);
-                            const c12 = isNeighbours(neighbours[1], neighbours[2]);
-                            remove = ((c01 && c02) || (c01 && c12) || (c02 && c12));
-                        }
-                    }
-                    if (remove) {
-                        shortestPath.splice(i, 1);
-                        checkHome(home, pos);
-                        anyRemoved = true;
-                        drawRemoved([pos], 0.9, "pink");
-                    }
-                }
-            }
-        }
-        
-        let removeClusterLoops = 0;
-        removeClusters();
-        
-        let removeLoops = 0;
-        let anyRemoved = true;
-        for (let k = 0; (k < maxRemoveLoops) && anyRemoved; k++) {
-            removeLoops++;
-            anyRemoved = false;
-            
-            // remove loops
-            let foundLoop = false;
-            shortestPath.forEach((pos, index) => {
-                if (!foundLoop) {
-                    for (let i = index + 2; (i < shortestPath.length) && (!foundLoop); i = i + 1) {
-                        if (isNeighbours(pos, shortestPath[i])) {
-                            for (let j = index + 2; (j < (i - 1)) && (!foundLoop); j = j + 1) {                            
-                                let copy = shortestPath.slice();
-                                let removed = shortestPath.splice(j, 1);
-                            
-                                removeClusters();
-                            
-                                if (!checkSolution(shortestPath, usedStart, usedEnd)) {
-                                    shortestPath = copy;
-                                } else {
-                                    drawRemoved(removed, 2, "black");
-                                    foundLoop = true;
-                                    anyRemoved = true;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-            
-            // check again for forks
-            /*
-            let atHome = 0;
-            const homes = [];
-            shortestPath.forEach(pos => {
-                if (colorObj.isOwnEdge(pos)) {
-                    atHome++;
-                    homes.push(pos);
-                }
-            });
-            if (atHome != 2) {
-                for (let i = 0; i < homes.length; i++) {
-                    const pos = homes[i];
-                    const home = (i > 0 ? homes[i - 1] : homes[i + 1]);
-                    checkHome(home, pos);
-                    
-                    let copy = shortestPath.slice();
-                    let removed = shortestPath.splice(i, 1);
-                
-                    removeClusters();
-                    
-                    // should be safe to remove, but perform check
-                    if (!checkSolution(shortestPath, usedStart, usedEnd)) {
-                        shortestPath = copy;
-                        checkHome(pos, home); // restoring
-                    } else {
-                        drawRemoved(removed, 1.7, "green");
-                        anyRemoved = true;
-                    }
-                }
-            }
-            */
-        }
-        
-        if (DEBUG) {
-            //console.log(shortestPath);
-            logVariable({bestRand});
-            logVariable({solutionLoops, solutionAlternatives, removeClusterLoops, removeLoops});
-            const t = new Date().getTime();
-            console.log("time " + (t - time1) + " = " + (time3 - time2) + " + " + (t - time3));
-        }
-        return shortestPath;
+    if (found != null) {
+        return found.path;
     }
     return false;
 }
@@ -848,6 +665,7 @@ function getSolution(colorObj) {
  * A function to be passed as an argument.
  * @callback loopBoardCallback
  * @param {Vector2D} pos - The position.
+ * @param {Vector2D} i   - The index.
  */
 /**
  * Loops through all positions of the board and calls the callback function.
@@ -858,9 +676,11 @@ function loopBoard(fcn, n) {
     if (n == undefined) {
         n = m_N;
     }
+    let i = 0;
     for (let r = 0; r < n; r++) { // y
         for (let c = 0; c < n; c++) { // x
-            fcn(new Vector2D(c, r));
+            fcn(new Vector2D(c, r), i);
+            i++;
         }
     }
 }
@@ -937,27 +757,89 @@ function getPosition(xy) {
 }
 
 function randomBoard() {
-    loopBoard(function(pos) {setStatus(pos, COLOR_OBJECTS[Math.floor(Math.random()*2 + 1)])});
+    const board = new Array(m_N*m_N);
+
+    const time = new Date().getTime();
+    
+    let n = 0;
+    let i = 0;
+    do {
+        do {
+            i = Math.floor(Math.random()*m_N*m_N);
+        } while (board[i] != undefined);
+        board[i] = RED_OBJECT;
+        n++;
+        do {
+            i = Math.floor(Math.random()*m_N*m_N);
+        } while (board[i] != undefined);
+        board[i] = BLUE_OBJECT;
+        n++;
+    } while (n < (m_N*m_N)*0.95);
+    
+    let col = RED_OBJECT;
+    for (let i = (m_N*m_N - 1); i > -1; i--) {
+        if (board[i] == undefined) {
+            board[i] = col;
+            col = col.next;
+        }
+    }
+    loopBoard(function(pos, i) {
+        setStatus(pos, board[i]);
+    });
 }
 
 
 /* GRAPHICS */
 
-function draw() {
+function draw(state) {
+    setScreenSize();
+    document.getElementById("New").href = FILE_NAME + QN + "=" + m_N;
+    if (state == undefined) {
+        state = decodeURI(getQueryValue(QSTATUS, ""));
+        if (DEBUG) {
+            console.log(state);
+            //console.log(encodeURI(state));
+        }
+    }
+    const binLength = nBinLength(m_N);
+    const statusDefault = "0".repeat(binLength);
+    m_status = (state + statusDefault).substring(0, binLength);
+
+    //initLengths();
+    m_s = Math.min(CANVAS.height, CANVAS.width)/(2*m_N + 1.2);
+    m_dx = m_s*Math.cos(V30);
+    m_dy = m_s*Math.sin(V30);
+
+    m_borderY = m_s*1.2; // border from mid of top left side
+
+    if (m_screenInterval != null) {
+        clearInterval(m_screenInterval);
+    }
+    m_screenInterval = setInterval(function() {
+        if (Math.floor(100*window.screen.availWidth/window.screen.availHeight) != Math.floor(100*m_screenQuota)) {
+            //console.log(window.screen.availWidth/window.screen.availHeight);
+            //console.log(TRANSLATION);
+            translateBack();
+            draw();
+        }
+    }, 1000);
+
     CTX.fillStyle = BACKGROUND_COLOR;
     CTX.fillRect(0, 0, CANVAS.width, CANVAS.height);
     
     const n = (m_N - 1)/2;
-    mc_translation.x = CANVAS.width/2 - m_dx*n;
-    mc_translation.y = CANVAS.height/2 - m_s*n - m_dy*n;
-    translate(mc_translation);
+    TRANSLATION.x = CANVAS.width/2 - m_dx*n;
+    TRANSLATION.y = CANVAS.height/2 - m_s*n - m_dy*n;
+    translate(TRANSLATION);
     
     drawBoard(false);
     drawStatus();
 }
 
 function drawStatus(ctx) {
-    updateShareLinks();
+    if ((ms_share == null) || DEBUG) {
+        updateShareLinks();
+    }
     if (ctx == undefined) {
         ctx = CTX;
     }
@@ -969,7 +851,7 @@ function drawStatus(ctx) {
             return;
         }
         ctx.fillStyle = colorObj.color;
-        ctx.lineWidth = colorObj.lineWidth*m_s/20;
+        ctx.lineWidth = colorObj.lineWidth*m_s/HEX_LINE_QUOTE;
         
         setShadow("#444444", colorObj.shadowBlur*ctx.lineWidth/4);
         
@@ -983,52 +865,70 @@ function drawStatus(ctx) {
         drawColoredHex(pos);
     });
     
+    const showNextMoveSide = function(lastColorObj) {
+        if (lastColorObj == undefined) {
+            lastColorObj = m_lastColor;
+        }
+        const n = (m_N - 1)/2;
+        translate(m_dx*n, m_s*n + m_dy*n);
+        
+        ctx.lineWidth = 10;
+        ctx.lineCap = "round";
+
+        const h = m_s*n + m_dy*n + (m_s - m_dy/2) + m_borderY + ctx.lineWidth/2 + 3;
+        const dw = m_borderY;
+
+        if (lastColorObj === BLUE_OBJECT) {
+            ctx.strokeStyle = RED_COLOR;
+        } else {
+            ctx.strokeStyle = BACKGROUND_COLOR;
+        }
+
+        drawLine(-h*Math.tan(V30)   + dw, -h, h*Math.tan(2*V30) - dw, -h, ctx);
+        drawLine(-h*Math.tan(2*V30) + dw,  h, h*Math.tan(V30)   - dw,  h, ctx);
+
+        if (lastColorObj === RED_OBJECT) {
+            ctx.strokeStyle = BLUE_COLOR;
+        } else {
+            ctx.strokeStyle = BACKGROUND_COLOR;
+        }
+
+        rotate(-2*V30);
+        drawLine(-h*Math.tan(2*V30) + dw, -h, h*Math.tan(V30)   - dw, -h, ctx);
+        drawLine(-h*Math.tan(V30)   + dw,  h, h*Math.tan(2*V30) - dw,  h, ctx);
+        rotateBack();
+
+        translateBack();
+        resetStyle(ctx);
+    };
+    
     let solved = false;
     if (m_lastMove != null) {
-        drawColoredHex(m_lastMove, m_lastColor);
-        solved = drawSolution(m_lastColor, ctx);
-    }
-    
-    // mark next move side
-    
-    const r = Math.PI/2;
-    const W = CANVAS.width;
-    const H = CANVAS.height;
-
-    function drawSide(a, w, h, color) {
-        ctx.strokeStyle = color;
-        rotate(a);
-        drawLine(0, 0, w, 0, ctx);
-        drawLine(0, h, w, h, ctx);
-        rotateBack();
-    }
-
-    ctx.lineWidth = 10;
-    const translation = translateBack();
-
-    let color = BACKGROUND_COLOR;
-    drawSide(0, W, H,  color);
-    drawSide(r, H, -W, color);
-
-    if (m_lastMove == null) {
-        if (m_lastColor === RED_OBJECT) {
-            drawSide(0, W, H, RED_COLOR);
+        const showMove = function(noWait) {
+            ctx.strokeStyle = "gold";
+            drawColoredHex(m_lastMove, m_lastColor);
+            solved = drawSolution(m_lastColor, ctx);
+            if (noWait) {
+                showNextMoveSide();
+            } else {
+                setTimeout(showNextMoveSide, 100);
+            }
+        };
+        if (m_firstDraw) {
+            showNextMoveSide(m_lastColor.next);
+            ctx.fillStyle = "gold";
+            drawHexPosition(m_lastMove, ctx);
+            setTimeout(function() {
+                showMove(false);
+            }, 500);
+            m_firstDraw = false;
         } else {
-            m_lastColor = BLUE_OBJECT;
-            drawSide(r, H, -W, BLUE_COLOR);
-        }
-    } else {
-        if (m_lastColor === RED_OBJECT) {
-            drawSide(r, H, -W, BLUE_COLOR);
-        } else {
-            drawSide(0, W, H, RED_COLOR);
+            showMove(true);
         }
     }
-    translate(translation);
-    resetStyle(ctx);
+    
     return solved;
 }
-
 function drawBoard(drawTiles, ctx) {
     if (ctx == undefined) {
         ctx = CTX;
@@ -1037,10 +937,8 @@ function drawBoard(drawTiles, ctx) {
     function drawBorder() {
         ctx.beginPath();
     
-        const by = m_s*1.2; // border from mid of top left side
-
         ctx.moveTo(0, 0);
-        const y = -(m_s - m_dy/2) - by;
+        const y = -(m_s - m_dy/2) - m_borderY;
         ctx.lineTo(Math.tan(V30)*y, y);
     
         translate((m_N - 1)*2*m_dx, 0);
@@ -1099,9 +997,10 @@ function drawBoard(drawTiles, ctx) {
         const row = i + 1;
         const col = String.fromCharCode(65 + i);
         
-        let q = 1.4;
+        let q = 1.5;
         let qx = q*m_dx;
         const qy = q*m_dy;
+        
         translate(i*2*m_dx, 0); // center of hexagon in first row
         drawTextCentered( qy, -qx, col); // note swapping qx and qy
         translate(-n*m_dx, n*(m_s + m_dy)); // center of hexagon in last row
@@ -1111,6 +1010,7 @@ function drawBoard(drawTiles, ctx) {
         
         q = 1.7;
         qx = q*m_dx;
+        
         translate(-i*m_dx, i*(m_s + m_dy)); // center of hexagon in first column
         drawTextCentered(-qx, 0, row);
         translate(n*2*m_dx, 0); // center of hexagon in last column
@@ -1119,31 +1019,41 @@ function drawBoard(drawTiles, ctx) {
         translateBack();
     }
     
-    // remove all old buttons, TODO remove from ctx
+    // clear all old buttons, TODO remove from ctx
     BUTTONS.splice(0);
 
-    const buttonPosition = 2.2*BUTTON_R;
+    const buttonR = (m_N < 9 ? m_N*m_s/10 : m_s);
+    const buttonX = 2.2*buttonR;
+    const buttonY = (m_N < 10 ? m_s : m_s*4);
     
-    drawButton(buttonPosition, buttonPosition, "<", "Back", function() {
+    drawButton(buttonX, buttonY, buttonR, "<", "Back", function() {
         window.history.back();
     }, ctx);
     
-    drawButton(2*buttonPosition, buttonPosition, ">", "Forward", function() {
+    drawButton(2*buttonX, buttonY, buttonR, ">", "Forward", function() {
         window.history.forward();
     }, ctx);
     
-    drawButton(3*buttonPosition, buttonPosition, "F", "Fullscreen toggle", function() {
-        toggleFullscreen();
-    }, ctx);
-    
-    drawButton(4*buttonPosition, buttonPosition, "S", "Share", function() {
-        // https://stackoverflow.com/questions/809057/how-do-i-programmatically-click-on-an-element-in-javascript
-        SHARE.dispatchEvent(new MouseEvent("click", {
-            "view": window,
-            "bubbles": true,
-            "cancelable": false
-        }));
-    }, ctx);
+    setTimeout(function() {
+        drawButton(3*buttonX, buttonY + 2.2*buttonR, buttonR, "F", "Fullscreen toggle", function() {
+            if (m_fullscreen) {
+                closeFullscreen();
+            } else {
+                openFullscreen();
+            }
+        }, ctx);
+    }, 500);
+
+    if (ms_share != null) {
+        drawButton(3.5*buttonX, buttonY, buttonR, "S", "Share", function() {
+            // https://stackoverflow.com/questions/809057/how-do-i-programmatically-click-on-an-element-in-javascript
+            ms_share.dispatchEvent(new MouseEvent("click", {
+                "view": window,
+                "bubbles": true,
+                "cancelable": false
+            }));
+        }, ctx);
+    }
 }
 function drawSolution(colorObj, ctx) {
     if (ctx == undefined) {
@@ -1154,15 +1064,42 @@ function drawSolution(colorObj, ctx) {
         if (DEBUG) {
             console.log("Solved by " + colorObj.name + ", path length: " + solution.length);
         }
-
-        ctx.strokeStyle = "black";
-        ctx.fillStyle = "yellow";
-        solution.forEach(pos => {
-            const a = getPositionXY(pos);
-            const r = m_s/2;
-            fillCircle(a, r, ctx);
-            drawCircle(a, r, ctx);
+        // assume solution is ordered
+        ctx.strokeStyle = colorObj.markColor;
+        ctx.lineWidth = m_s/5;
+        ctx.lineCap = "round";
+        
+        let pos = solution[0];
+        let xy = getPositionXY(pos);
+        let da;
+        if (colorObj.isStartEdge(pos) && colorObj.next.isOwnEdge(pos)) {
+            if (colorObj === RED_OBJECT) { // red
+                da = new Vector2D(m_dx/2, -(m_s - m_dy/2));
+            } else {
+                da = new Vector2D(-m_dx, 0);
+            }
+        } else {
+            da = xy.minus(getPositionXY(solution[1])).mult(0.5);
+        }
+        drawRelativeLine(xy, da, ctx);
+        solution.forEach((pos, i) => {
+            if (i != 0) {
+                const a = getPositionXY(pos);
+                drawLine(xy, a, ctx);
+                xy = a;
+            }
         });
+        pos = solution[solution.length - 1];
+        if (colorObj.isEndEdge(pos) && colorObj.next.isOwnEdge(pos)) {
+            if (colorObj === RED_OBJECT) { // red
+                da = new Vector2D(-m_dx/2, (m_s - m_dy/2));
+            } else {
+                da = new Vector2D(m_dx, 0);
+            }
+        } else {
+            da = xy.minus(getPositionXY(solution[solution.length - 2])).mult(0.5);
+        }
+        drawRelativeLine(xy, da, ctx);
         return true;
     }
     return false;
@@ -1172,48 +1109,71 @@ function drawHexPosition(pos, ctx) {
     if (ctx == undefined) {
         ctx = CTX;
     }
-    drawHex(getPositionXY(pos), ctx);
-}
-function drawHex(a, ctx) { // center at a
-    if (ctx == undefined) {
-        ctx = CTX;
+    const drawHex = function(a, ctx) { // center at a
+        if (ctx == undefined) {
+            ctx = CTX;
+        }
+        let s = m_s;
+        let dx = m_dx;
+        let dy = m_dy;
+    
+        const w = ctx.lineWidth;
+
+        if (w > COLOR_OBJECTS[0].lineWidth*m_s/HEX_LINE_QUOTE) {
+            const q = (m_s - w*0.6)/m_s;
+            s = m_s*q;
+            dx = m_dx*q;
+            dy = m_dy*q;
+        }
+    
+        ctx.beginPath();
+    
+        translate(a.x, a.y - s, ctx);
+        ctx.moveTo(0, 0); // starting at top
+        ctx.lineTo(dx, dy);
+        ctx.lineTo(dx, dy + s);
+        ctx.lineTo(0, 2*dy + s);
+        ctx.lineTo(-dx, dy + s);
+        ctx.lineTo(-dx, dy);
+        translateBack();
+    
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
     }
-    ctx.beginPath();
     
-    translate(a.x, a.y - m_s, ctx);
-    ctx.moveTo(0, 0); // starting at top
-    ctx.lineTo(m_dx, m_dy);
-    ctx.lineTo(m_dx, m_dy + m_s);
-    ctx.lineTo(0, 2*m_dy + m_s);
-    ctx.lineTo(-m_dx, m_dy + m_s);
-    ctx.lineTo(-m_dx, m_dy);
-    translateBack();
-    
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+    drawHex(getPositionXY(pos), ctx);
 }
 
 // note x, y in default canvas coordinates
-function drawButton(x, y, txt, tooltip, actionFcn, ctx) {
+function drawButton(x, y, r, txt, tooltip, actionFcn, ctx) {
     if (ctx == undefined) {
         ctx = CTX;
     }
     const translation = translateBack();
+    const buttonVector = new Vector2D(x - translation.x, y - translation.y);
+    buttonVector.r = r;
+    buttonVector.tooltip = tooltip;
+    buttonVector.action = actionFcn;
+    
+    let shift = 0;
+    loopButtons(buttonVector, function(button) {
+        if (DEBUG) {
+            console.log("Warning: buttons overlap for " + tooltip);
+        }
+        shift = 2*r/3;
+        buttonVector.add(new Vector2D(shift, shift));
+    })
+    BUTTONS.push(buttonVector);
+    
+    
     ctx.fillStyle = "gold";
-    fillCircle(x, y, BUTTON_R, ctx);
+    fillCircle(x + shift, y + shift, r, ctx);
     
-    ctx.font = "bold " + BUTTON_R + "px Arial";
-    drawTextCentered(x, y, txt, "black", CTX_TRANSPARENT_COLOR, ctx);
+    ctx.font = "bold " + r + "px Arial";
+    drawTextCentered(x + shift, y + shift, txt, "black", CTX_TRANSPARENT_COLOR, ctx);
+    
     translate(translation);
-    
-    const button = new Vector2D(x - translation.x, y - translation.y);
-    
-    button.r = BUTTON_R;
-    button.tooltip = tooltip;
-    button.action = actionFcn;
-    
-    BUTTONS.push(button);
 }
 function loopButtons(xy, fcn) {
     BUTTONS.forEach(button => {
@@ -1224,59 +1184,9 @@ function loopButtons(xy, fcn) {
 }
 function getEventCoordinates(event) {
     let rect = event.target.getBoundingClientRect();
-    const x = event.clientX - rect.left - mc_translation.x;
-    const y = event.clientY - rect.top - mc_translation.y;
+    const x = event.clientX - rect.left - TRANSLATION.x;
+    const y = event.clientY - rect.top - TRANSLATION.y;
     return new Vector2D(x, y);
-}
-
-
-// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
-function toggleFullscreen() {
-    if (document.fullscreenElement) {
-        if (document.exitFullscreen) {
-            document.exitFullscreen();
-        } else if (document.webkitExitFullscreen) { // Safari
-            document.webkitExitFullscreen();
-        } else if (document.msExitFullscreen) { // IE11
-            document.msExitFullscreen();
-        }
-    } else {
-        const elem = FULLSCREENDIV;
-    
-        if (elem.requestFullscreen) {
-            // https://stackoverflow.com/questions/23913111/firefox-browser-rejected-fullscreen-change
-            // Mozilla Firefox insists that the code in the event handler executes under 1 second. 
-            // Request for fullscreen was denied because Element.requestFullscreen() was not called from inside a short running user-generated event handler.
-            // seems to happen when trying to open in event handler 'fullscreenchange'
-            elem.requestFullscreen();
-        } else if (elem.webkitRequestFullscreen) { // Safari
-            elem.webkitRequestFullscreen();
-        } else if (elem.msRequestFullscreen) { // IE11
-            elem.msRequestFullscreen();
-        }
-    }
-}
-function fullscreenOpen() {
-    setTimeout(function () {
-        // reset the current origin
-        translateBack();
-    
-        CANVAS.width = window.screen.availWidth;
-        CANVAS.height = window.screen.availHeight;
-
-        initLengths();
-        draw();
-    }, 700);
-}
-function fullscreenClosed() {
-    // reset the current origin
-    translateBack();
-
-    CANVAS.width = WIDTH;
-    CANVAS.height = HEIGHT;
-
-    initLengths();
-    draw();
 }
 
 
@@ -1298,6 +1208,12 @@ function fullscreenClosed() {
 /*
 }*/
 function newQuery() {
+    if (m_lastMove == null) {
+        // replace prohibits using Back
+        // the user can still reload shared link
+        window.location.replace(m_href);
+        return;
+    }
     const state = {
         N: m_N,
         lastColor: COLOR_OBJECTS.indexOf(m_lastColor),
@@ -1345,6 +1261,7 @@ function newQuery() {
         title.innerText = earlierTitle;
     }, 10);
 }
+
 function updateShareLinks() {
     // https://schier.co/blog/pure-html-share-buttons
     // https://developers.facebook.com/tools/debug/
@@ -1396,6 +1313,35 @@ function logVariable(obj) { // use as logVariables({theVariableNameToBeLogged})
 }
 
 
+/* FULLSCREEN */
+
+// https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
+function openFullscreen() {
+    const e = document.getElementById("FullscreenDiv");
+    if (e.requestFullscreen) {
+        e.requestFullscreen();
+    } else if (e.webkitRequestFullscreen) { // Safari
+        e.webkitRequestFullscreen();
+    } else if (elem.msRequestFullscreen) { // IE11
+        e.msRequestFullscreen();
+    }
+    setTimeout(draw, 500);
+}
+function closeFullscreen() {
+    if (document.fullscreenElement) {
+        if (document.exitFullscreen) {
+            document.exitFullscreen();
+        } else if (document.webkitExitFullscreen) { // Safari
+            document.webkitExitFullscreen();
+        } else if (document.msExitFullscreen) { // IE11
+            document.msExitFullscreen();
+        }
+    }
+    setTimeout(function() {
+        draw();
+        m_fullscreen = false;
+    }, 500);
+} 
 //]]>
 </script>
     </body>
