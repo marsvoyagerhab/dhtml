@@ -16,6 +16,7 @@ const CTX_DEFAULT = {
     strokeStyle: "black",
     fillStyle: "white",
     lineWidth: 1,
+    lineCap: "round",
     font: "18px Arial",
 };
 
@@ -29,6 +30,16 @@ class Vector2D {
     constructor(x, y) {
         this.x = x;
         this.y = y;
+        
+        // "private"/privileged
+        this.theResult = function(x, y, result) {
+            if (result != undefined) {
+                result.x = x;
+                result.y = y;
+                return result;
+            }
+            return new Vector2D(x, y);
+        };
     };
     toString() {
         return "(" + this.x + ", " + this.y + ")";
@@ -75,18 +86,23 @@ class Vector2D {
     
     /**
      * Adds this and the parameter a vector.
-     * @param {Vector2D} a - The vector to add to this vector.
-     * @returns {Vector2D} - Result as a new object.
+     * @param {Vector2D} a      - The vector to add to this vector.
+     * @param {Vector2D} result - The vector to put the result in.
+     * @returns {Vector2D}      - The resulting object.
      */
-    plus(a) {
-        return new Vector2D(this.x + a.x, this.y + a.y);
+    plus(a, result) {
+        return this.theResult(this.x + a.x, this.y + a.y, result);
     };
-    minus(a) {
-        return new Vector2D(this.x - a.x, this.y - a.y);
+    minus(a, result) {
+        return this.theResult(this.x - a.x, this.y - a.y, result);
     };
-    mult(s) {
-        return new Vector2D(s*this.x, s*this.y);
+    mult(s, result) {
+        return this.theResult(s*this.x, s*this.y, result);
     }
+    /**
+     * Results which are scalar.
+     * @returns {Number} - Result as a scalar.
+     */
     length() {
         return Math.sqrt(this.x*this.x + this.y*this.y);
     };
@@ -96,6 +112,7 @@ class Vector2D {
     dot(a) {
         return this.x*a.x + this.y*a.y;
     };
+    
     /**
      * The cross product of two 2D vectors, the result is in the third dimension (right-handed).
      * @returns {Number} - The scalar in the third dimension.
@@ -124,7 +141,8 @@ function resetStyle(ctx) {
     ctx.strokeStyle = CTX_DEFAULT.strokeStyle;
     ctx.fillStyle = CTX_DEFAULT.fillStyle;
     ctx.lineWidth = CTX_DEFAULT.lineWidth;
-    ctx.font = CTX_DEFAULT.font;
+    ctx.lineWidth = CTX_DEFAULT.lineWidth;
+    ctx.lineCap = CTX_DEFAULT.lineCap;
 
     clearShadow(ctx);
 }
