@@ -1,0 +1,335 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2021-01-23 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+
+
+        <title>Mars Voyager on XXX</title>
+
+
+        <meta name="author" content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title" property="og:title" content="Mars Voyager on XXX"/>
+        <!-- min 200 x 200 for Facebook -->
+        <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
+        <meta name="description" property="og:description" content="XXX"/>
+        <meta property="og:image:alt" content="Mars Voyager on XXX"/>
+        <meta property="og:type" content="Science"/>
+
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&amp;display=swap"/> 
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
+        
+        <!-- https://realfavicongenerator.net -->
+        <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=1" sizes="180x180"/>
+        <link rel="icon"             href="../icons/favicon-32x32.png?v=1"    sizes="32x32" type="image/png"/>
+        <link rel="icon"             href="../icons/favicon-16x16.png?v=1"    sizes="16x16" type="image/png"/>
+        <link rel="manifest"         href="../icons/site.webmanifest?v=1"/>
+        <link rel="mask-icon"        href="../icons/safari-pinned-tab.svg?v=1" color="#5bbad5"/>
+        <link rel="shortcut icon"    href="favicon.ico?v=1"/>
+        
+        <meta name="apple-mobile-web-app-title" content="Mars XXXXX"/>
+        <meta name="application-name"           content="Mars XXXXX"/>
+        <meta name="msapplication-config"       content="../icons/browserconfig.xml?v=1"/>
+        <meta name="msapplication-TileColor"    content="#2b5797"/>
+        <meta name="theme-color"                content="#ffffff"/>
+        
+        <style>
+            .garden {
+              position: relative;
+              width : 200px;
+              height: 200px;
+              border: 5px solid #CCC;
+              border-radius: 10px;
+            }
+
+            .ball {
+              position: absolute;
+              top   : 90px;
+              left  : 90px;
+              width : 20px;
+              height: 20px;
+              background: green;
+              border-radius: 100%;
+            }
+            
+            /* https://davidwalsh.name/orientation-change */
+            @media screen and (orientation:portrait) {
+            	/* portrait-specific styles */
+            }
+            /* landscape */
+            @media screen and (orientation:landscape) {
+            	/* landscape-specific styles */
+            }
+        </style>
+    </head>
+        
+    <body>
+        <h1>Mars Voyager on XXX</h1>
+        
+        <div class="garden">
+          <div class="ball"></div>
+        </div>
+
+        <pre id="motion"></pre>
+        <pre id="orientation"></pre>
+        
+        <canvas id="scene"></canvas>
+       
+        <!-- 
+        <dialog open>
+          <p>Greetings</p>
+          <form method="dialog">
+            <button>OK</button>
+          </form>
+        </dialog>
+        -->
+        
+        <dialog id="favDialog">
+          <form method="dialog">
+            <p>
+              <label>Favorite color:
+                <select>
+                  <option value="default">Choose…</option>
+                  <option>Red</option>
+                  <option>Yellow</option>
+                  <option>Green</option>
+                </select>
+              </label>
+            </p>
+            <div>
+              <button value="cancel">Cancel</button>
+              <button id="confirmBtn" value="default">Confirm</button>
+            </div>
+          </form>
+        </dialog>
+        <p>
+          <button id="updateDetails">Update details</button>
+        </p>
+        <output></output>
+
+
+        <div id="Footer" data-depth="../" data-topic="XXX" data-version="1.0"></div>        
+
+
+        <script>//<![CDATA[
+        "use strict"; // don't allow hoisting or undeclared variables
+        const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
+        const SETTINGS = { // updated by bash at deployment
+             fileLastModified: "2022-09-03T16:30Z",
+             debug: (true && LOCALEXECUTION),
+        };
+        updatePage(SETTINGS);
+        const DEBUG = SETTINGS.debug;
+ 
+
+        // https://stackoverflow.com/questions/44709114/javascript-screen-orientation-on-safari
+        window.addEventListener("resize", function() {
+            // Get screen size (inner/outerWidth, inner/outerHeight)
+        }, false);
+        
+        
+        // http://www.williammalone.com/articles/html5-javascript-ios-orientation/
+        // iPhone
+        function readDeviceOrientation() {
+            if (Math.abs(window.orientation) === 90) {
+                // Landscape
+            } else {
+            	// Portrait
+            }
+        }
+        window.onorientationchange = readDeviceOrientation;
+        
+        
+        // https://davidwalsh.name/orientation-change
+        var mql = window.matchMedia("(orientation: portrait)");
+        if (mql.matches) {  
+        	// Portrait orientation
+        } else {  
+        	// Landscape orientation
+        }
+        mql.addListener(function(m) {
+        	if (m.matches) {
+        		// Changed to portrait
+        	}
+        	else {
+        		// Changed to landscape
+        	}
+        });
+        
+        
+        // https://www.basedesign.com/blog/how-to-render-3d-in-2d-canvas
+        const canvas = document.getElementById("scene");
+        const ctx = canvas.getContext('2d');
+        let width = canvas.offsetWidth;
+        let height = canvas.offsetHeight;
+        function onResize() {
+            width = canvas.offsetWidth;
+            height = canvas.offsetHeight;
+  
+            // If the screen device has a pixel ratio over 1
+            // We render the canvas twice bigger to make it sharper (e.g. Retina iPhone)
+            if (window.devicePixelRatio > 1) {
+                canvas.width = canvas.clientWidth*2;
+                canvas.height = canvas.clientHeight*2;
+                ctx.scale(2, 2);
+                ctx.fillStyle = "red";
+            } else {
+                canvas.width = width;
+                canvas.height = height;
+                ctx.fillStyle = "yellow";
+            }
+        }
+        window.addEventListener("resize", onResize);
+        onResize();
+                
+        const ball   = document.querySelector('.ball');
+        const garden = document.querySelector('.garden');
+        const output = document.querySelector('.output');
+
+        const maxX = garden.clientWidth  - ball.clientWidth;
+        const maxY = garden.clientHeight - ball.clientHeight;
+        
+        const orientation = document.getElementById("orientation");
+        const motion = document.getElementById("motion");
+
+        function handleOrientation(event) {
+          const x = event.beta;  // x axis, in degree [-180,180)
+          const y = event.gamma; // y axis, in degree [-90,90)
+
+          const absolute = event.absolute; // true or false
+          const alpha    = event.alpha; // z axis [0, 360).
+
+          orientation.textContent  = `beta : ${x}\n`;
+          orientation.textContent += `gamma: ${y}\n`;
+          orientation.textContent += `absolute: ${absolute}\n`;
+          orientation.textContent += `alpha: ${alpha}\n`;
+
+          // Because we don't want to have the device upside down
+          // We constrain the x value to the range [-90,90]
+          if (x >  90) { x =  90};
+          if (x < -90) { x = -90};
+
+          // To make computation easier we shift the range of
+          // x and y to [0,180]
+          x += 90;
+          y += 90;
+
+          // 10 is half the size of the ball
+          // It center the positioning point to the center of the ball
+          ball.style.top  = `${maxY * y / 180 - 10}px`;
+          ball.style.left = `${maxX * x / 180 - 10}px`;
+        }
+        function handleMotion(event) {
+            const acc = event.acceleration;
+            const accWithG = event.accelerationIncludingGravity;
+            const rotRate = event.rotationRate;
+            const dt = event.interval;
+            
+            motion.textContent  = `acc : ${acc}\n`;
+            motion.textContent += `accWithG: ${accWithG}\n`;
+            motion.textContent += `rotRate: ${rotRate}\n`;
+            motion.textContent += `dt: ${dt}\n`;
+        }      
+        window.addEventListener('deviceorientation', handleOrientation, true);
+        window.addEventListener('devicemotion', handleMotion, true);
+        
+        
+        let PERSPECTIVE = width*0.8; // The field of view of our 3D scene
+        let PROJECTION_CENTER_X = width/2;
+        let PROJECTION_CENTER_Y = height/2;
+        const dots = [];
+
+        class Dot {
+            constructor() {
+                this.x = (Math.random() - 0.5)*width;
+                this.y = (Math.random() - 0.5)*height;
+                this.z = Math.random()*width;
+                this.radius = 10;
+
+                this.xProjected = 0;
+                this.yProjected = 0;
+                this.scaleProjected = 0;
+            }
+            move() {
+                this.z = this.z + 10*Math.random() - 5;
+            }
+            project() {
+                this.scaleProjected = PERSPECTIVE/(PERSPECTIVE + this.z);
+                this.xProjected = (this.x*this.scaleProjected) + PROJECTION_CENTER_X;
+                this.yProjected = (this.y*this.scaleProjected) + PROJECTION_CENTER_Y;
+            }
+            draw() {
+                this.project();
+                //ctx.globalAlpha = Math.abs(Math.min(this.z/width, 1));
+                ctx.fillRect(this.xProjected - this.radius, 
+                             this.yProjected - this.radius, 
+                             this.radius*2*this.scaleProjected, 
+                             this.radius*2*this.scaleProjected);
+            }
+        }
+        for (let i = 0; i < 100; i++) {
+            dots.push(new Dot());
+        }
+        function render() {
+            ctx.clearRect(0, 0, width, height);
+            for (let i = 0; i < dots.length; i++) {
+                let d = dots[i];
+                d.move();
+                
+                let angle = Math.atan2(d.y, d.x) + 0.1*Math.random() - 0.02;
+                let r = Math.sqrt(Math.pow(d.x, 2) + Math.pow(d.y, 2));
+                d.x = r*Math.cos(angle);
+                d.y = r*Math.sin(angle);
+
+                d.draw();
+            }
+        }                
+
+        //window.requestAnimationFrame(render);
+        let timer = setInterval(render, 100);
+        
+        
+        // https://developer.mozilla.org/en-US/docs/Web/HTML/Element/dialog
+        const updateButton = document.getElementById('updateDetails');
+
+        const favDialog = document.getElementById('favDialog');
+        const selectEl = favDialog.querySelector('select');
+        const confirmBtn = favDialog.querySelector('#confirmBtn');
+
+        const outputBox = document.querySelector('output');
+
+        // If a browser doesn't support the <dialog>
+        if (typeof favDialog.showModal !== 'function') {
+          favDialog.hidden = true;
+        }
+        updateButton.addEventListener('click', () => {
+          if (typeof favDialog.showModal === "function") {
+            favDialog.showModal();
+          } else {
+            outputBox.value = "Sorry, the <dialog> API is not supported by this browser.";
+          }
+        });
+        selectEl.addEventListener('change', (e) => {
+          confirmBtn.value = selectEl.value;
+        });
+        // "Confirm" button of form triggers "close" on dialog because of method="dialog"
+        favDialog.addEventListener('close', () => {
+          outputBox.value = `${favDialog.returnValue} button clicked`;
+        });
+        
+                
+        //]]></script>
+    </body>
+</html>
