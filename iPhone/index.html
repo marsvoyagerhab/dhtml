@@ -157,34 +157,33 @@
         window.onorientationchange = readDeviceOrientation;
         
         
+        let portrait = window.matchMedia("(orientation: portrait)");
+
         // https://davidwalsh.name/orientation-change
-        var mql = window.matchMedia("(orientation: portrait)");
-        if (mql.matches) {  
-            document.getElementById("info").textContent = "portrait 1";
+        if (portrait.matches) {  
+            document.getElementById("info").textContent = "portrait 1\n";
         } else {  
-            document.getElementById("info").textContent = "landscape 1";
+            document.getElementById("info").textContent = "landscape 1\n";
         }
-        mql.addListener(function(m) {
-        	if (m.matches) {
-                document.getElementById("info").textContent += "changed to portrait 1";
-        	}
-        	else {
-                document.getElementById("info").textContent += "changed to landscape 1";
+        portrait.addListener(function(e) {
+        	if (e.matches) {
+                document.getElementById("info").textContent += "changed to portrait 1\n";
+        	} else {
+                document.getElementById("info").textContent += "changed to landscape 1\n";
         	}
         });
         
         
-        let portrait = window.matchMedia("(orientation: portrait)");
-
+        // https://fjolt.com/article/javascript-detecting-device-orientation
         portrait.addEventListener("change", function(e) {
             if (e.matches) {
-                document.getElementById("info").textContent += "portrait 2";
+                document.getElementById("info").textContent += "portrait 2\n";
             } else {
-                document.getElementById("info").textContent += "landscape 2";
+                document.getElementById("info").textContent += "landscape 2\n";
             }
         })
         screen.orientation.addEventListener("change", function(e) {
-            document.getElementById("info").textContent += "orientation changed 2";
+            document.getElementById("info").textContent += "orientation changed 2\n";
         });
         
         
