@@ -142,6 +142,7 @@
         // https://stackoverflow.com/questions/44709114/javascript-screen-orientation-on-safari
         window.addEventListener("resize", function() {
             // Get screen size (inner/outerWidth, inner/outerHeight)
+            document.getElementById("info").textContent = "resize\n";
         }, false);
         
         
@@ -149,9 +150,9 @@
         // iPhone
         function readDeviceOrientation() {
             if (Math.abs(window.orientation) === 90) {
-                // Landscape
+                document.getElementById("info").textContent = "landscape 0\n";
             } else {
-            	// Portrait
+                document.getElementById("info").textContent = "portrait 0\n";
             }
         }
         window.onorientationchange = readDeviceOrientation;
@@ -192,6 +193,7 @@
         const ctx = canvas.getContext('2d');
         let width = canvas.offsetWidth;
         let height = canvas.offsetHeight;
+        /*
         function onResize() {
             width = canvas.offsetWidth;
             height = canvas.offsetHeight;
@@ -211,6 +213,7 @@
         }
         window.addEventListener("resize", onResize);
         onResize();
+        */
                 
         const ball   = document.querySelector('.ball');
         const garden = document.querySelector('.garden');
