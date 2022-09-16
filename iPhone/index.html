@@ -137,22 +137,34 @@
         };
         updatePage(SETTINGS);
         const DEBUG = SETTINGS.debug;
+        
+        
+        document.getElementById("info").textContent = "start\n";
  
 
         // https://stackoverflow.com/questions/44709114/javascript-screen-orientation-on-safari
         window.addEventListener("resize", function() {
             // Get screen size (inner/outerWidth, inner/outerHeight)
-            document.getElementById("info").textContent = "resize\n";
+            document.getElementById("info").textContent += "resize, ";
+            writeInfo();
         }, false);
         
+        function writeInfo() {
+            if (window.devicePixelRatio) {
+                document.getElementById("info").textContent += ("devicePixelRatio: " + window.devicePixelRatio + "\n");
+            } else {
+                document.getElementById("info").textContent += ("window.devicePixelRatio unknown\n");
+            }
+        }
+        writeInfo();
         
         // http://www.williammalone.com/articles/html5-javascript-ios-orientation/
         // iPhone
         function readDeviceOrientation() {
             if (Math.abs(window.orientation) === 90) {
-                document.getElementById("info").textContent = "landscape 0\n";
+                document.getElementById("info").textContent += "landscape 0\n";
             } else {
-                document.getElementById("info").textContent = "portrait 0\n";
+                document.getElementById("info").textContent += "portrait 0\n";
             }
         }
         window.onorientationchange = readDeviceOrientation;
@@ -162,9 +174,9 @@
 
         // https://davidwalsh.name/orientation-change
         if (portrait.matches) {  
-            document.getElementById("info").textContent = "portrait 1\n";
+            document.getElementById("info").textContent += "portrait 1\n";
         } else {  
-            document.getElementById("info").textContent = "landscape 1\n";
+            document.getElementById("info").textContent += "landscape 1\n";
         }
         portrait.addListener(function(e) {
         	if (e.matches) {
@@ -193,6 +205,7 @@
         const ctx = canvas.getContext('2d');
         let width = canvas.offsetWidth;
         let height = canvas.offsetHeight;
+        
         /*
         function onResize() {
             width = canvas.offsetWidth;
