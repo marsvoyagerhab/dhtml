@@ -86,10 +86,12 @@
           <div class="ball"></div>
         </div>
 
+        <pre id="ratio"></pre>
         <pre id="info"></pre>
         <pre id="motion"></pre>
         <pre id="orientation"></pre>
         
+        <canvas id="canvas"></canvas>
         <canvas id="scene"></canvas>
        
         <!-- 
@@ -138,25 +140,56 @@
         updatePage(SETTINGS);
         const DEBUG = SETTINGS.debug;
         
-        
+        let scale1 = false;
         document.getElementById("info").textContent = "start\n";
  
 
         // https://stackoverflow.com/questions/44709114/javascript-screen-orientation-on-safari
         window.addEventListener("resize", function() {
             // Get screen size (inner/outerWidth, inner/outerHeight)
-            document.getElementById("info").textContent += "resize, ";
-            writeInfo();
+            writeResizeInfo();
         }, false);
         
-        function writeInfo() {
+        function writeResizeInfo() {
+            document.getElementById("ratio").textContent = "resize, " + (scale1 ? "scale1, " : "");
             if (window.devicePixelRatio) {
-                document.getElementById("info").textContent += ("devicePixelRatio: " + window.devicePixelRatio + "\n");
+                document.getElementById("ratio").textContent += ("devicePixelRatio: " + window.devicePixelRatio + "\n");
             } else {
-                document.getElementById("info").textContent += ("window.devicePixelRatio unknown\n");
+                document.getElementById("ratio").textContent += ("window.devicePixelRatio unknown\n");
             }
+
+            // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
+            const canvas2 = document.getElementById('canvas');
+            const ctx2 = canvas2.getContext('2d');
+        
+            // Set display size (css pixels).
+            const size = 200;
+            canvas2.style.width = `${size}px`;
+            canvas2.style.height = `${size}px`;
+
+            // Set actual size in memory (scaled to account for extra pixel density).
+            const scale = (scale1 ? 1 : window.devicePixelRatio); // Change to 1 on retina screens to see blurry canvas.
+            canvas2.width = Math.floor(size * scale);
+            canvas2.height = Math.floor(size * scale);
+
+            // Normalize coordinate system to use CSS pixels.
+            ctx2.scale(scale, scale);
+
+            ctx2.fillStyle = "#bada55";
+            ctx2.fillRect(10, 10, 300, 300);
+            ctx2.fillStyle = "#ffffff";
+            ctx2.font = '18px Arial';
+            ctx2.textAlign = 'center';
+            ctx2.textBaseline = 'middle';
+
+            const x = size / 2;
+            const y = size / 2;
+
+            const textString = (scale1 ? "Unsharp on retina" : "Sharp on retina");
+            ctx2.fillText(textString, x, y);
+        
         }
-        writeInfo();
+        writeResizeInfo();
         
         // http://www.williammalone.com/articles/html5-javascript-ios-orientation/
         // iPhone
@@ -200,33 +233,6 @@
         });
         
         
-        // https://www.basedesign.com/blog/how-to-render-3d-in-2d-canvas
-        const canvas = document.getElementById("scene");
-        const ctx = canvas.getContext('2d');
-        let width = canvas.offsetWidth;
-        let height = canvas.offsetHeight;
-        
-        /*
-        function onResize() {
-            width = canvas.offsetWidth;
-            height = canvas.offsetHeight;
-  
-            // If the screen device has a pixel ratio over 1
-            // We render the canvas twice bigger to make it sharper (e.g. Retina iPhone)
-            if (window.devicePixelRatio > 1) {
-                canvas.width = canvas.clientWidth*2;
-                canvas.height = canvas.clientHeight*2;
-                ctx.scale(2, 2);
-                ctx.fillStyle = "red";
-            } else {
-                canvas.width = width;
-                canvas.height = height;
-                ctx.fillStyle = "yellow";
-            }
-        }
-        window.addEventListener("resize", onResize);
-        onResize();
-        */
                 
         const ball   = document.querySelector('.ball');
         const garden = document.querySelector('.garden');
@@ -293,6 +299,14 @@
         handleOrientation(e);
         handleMotion(e);
         
+                
+        // https://www.basedesign.com/blog/how-to-render-3d-in-2d-canvas
+        const canvas = document.getElementById("scene");
+        const ctx = canvas.getContext('2d');
+
+        let width = canvas.offsetWidth;
+        let height = canvas.offsetHeight;
+                
         let PERSPECTIVE = width*0.8; // The field of view of our 3D scene
         let PROJECTION_CENTER_X = width/2;
         let PROJECTION_CENTER_Y = height/2;
@@ -362,6 +376,8 @@
           favDialog.hidden = true;
         }
         updateButton.addEventListener('click', () => {
+            scale1 = (!scale1);
+            writeResizeInfo();
           if (typeof favDialog.showModal === "function") {
             favDialog.showModal();
           } else {
