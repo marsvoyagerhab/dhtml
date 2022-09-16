@@ -66,22 +66,27 @@
             
             /* https://davidwalsh.name/orientation-change */
             @media screen and (orientation:portrait) {
-            	/* portrait-specific styles */
+            	h1 {
+                    color: green;
+                }
             }
             /* landscape */
             @media screen and (orientation:landscape) {
-            	/* landscape-specific styles */
+            	h1 {
+                    color: red;
+                }
             }
         </style>
     </head>
         
     <body>
-        <h1>Mars Voyager on XXX</h1>
+        <h1 onclick="location.reload();">Mars Voyager on XXX</h1>
         
         <div class="garden">
           <div class="ball"></div>
         </div>
 
+        <pre id="info"></pre>
         <pre id="motion"></pre>
         <pre id="orientation"></pre>
         
@@ -155,17 +160,31 @@
         // https://davidwalsh.name/orientation-change
         var mql = window.matchMedia("(orientation: portrait)");
         if (mql.matches) {  
-        	// Portrait orientation
+            document.getElementById("info").textContent = "portrait 1";
         } else {  
-        	// Landscape orientation
+            document.getElementById("info").textContent = "landscape 1";
         }
         mql.addListener(function(m) {
         	if (m.matches) {
-        		// Changed to portrait
+                document.getElementById("info").textContent += "changed to portrait 1";
         	}
         	else {
-        		// Changed to landscape
+                document.getElementById("info").textContent += "changed to landscape 1";
         	}
+        });
+        
+        
+        let portrait = window.matchMedia("(orientation: portrait)");
+
+        portrait.addEventListener("change", function(e) {
+            if (e.matches) {
+                document.getElementById("info").textContent += "portrait 2";
+            } else {
+                document.getElementById("info").textContent += "landscape 2";
+            }
+        })
+        screen.orientation.addEventListener("change", function(e) {
+            document.getElementById("info").textContent += "orientation changed 2";
         });
         
         
