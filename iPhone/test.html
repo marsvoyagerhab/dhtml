@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!-- Mars Voyager, 2021-01-23 -->
+
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en">
+    <head>
+        <meta charset="UTF-8"/> <!-- HTML5 -->
+        <meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/> <!-- HTML4 -->
+    <!--
+        <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    -->
+
+        <title>Mars Voyager on iPhone Test</title>
+
+        <!-- Open Graph: LinkedIn, Facebook -->
+        <meta name="title"       property="og:title"       content="Mars Voyager on iPhone Test"/>
+        <meta                    property="og:image:alt"   content="Mars Voyager on iPhone Test"/>
+        <meta name="description" property="og:description" content="iPhone Test"/>
+        <meta name="apple-mobile-web-app-title"            content="Mars iPhone Test"/>
+        <meta name="application-name"                      content="Mars iPhone Test"/>
+        
+        <meta property="og:type"                           content="Technology"/>
+
+        <meta name="author"   content="Mars Voyager"/>
+        <meta name="keywords" content="Creativity, DHTML, JavaScript"/>
+
+        <link rel="preconnect" href="https://fonts.gstatic.com"/>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Quicksand&amp;display=swap"/> 
+
+        <script type="text/javascript" src="../marsvoyager.js"></script>
+        <link rel="stylesheet"        href="../marsvoyager.css" type="text/css"/>
+        <link rel="icon"              href="../images/MarsVoyager_100x100.png"/>
+        
+        <!-- min 200x200 for Facebook -->
+        <meta name="image" property="og:image" content="../images/MarsVoyager_100x100.png"/>
+
+        <!-- https://realfavicongenerator.net -->
+    <!--
+            <link rel="apple-touch-icon" href="../icons/apple-touch-icon.png?v=1" sizes="180x180"/>
+    -->
+        <link rel="icon"          href="../icons/favicon-32x32.png?v=1" sizes="32x32" type="image/png"/>
+        <link rel="icon"          href="../icons/favicon-16x16.png?v=1" sizes="16x16" type="image/png"/>
+        <link rel="manifest"      href="../icons/site.webmanifest?v=1"/>
+        <link rel="mask-icon"     href="../icons/safari-pinned-tab.svg?v=1" color="#5bbad5"/>
+        <link rel="shortcut icon" href="../icons/favicon.ico?v=1"/>
+        
+        <meta name="msapplication-config"    content="../icons/browserconfig.xml?v=1"/>
+        <meta name="msapplication-TileColor" content="#2b5797"/>
+        <meta name="theme-color"             content="#ffffff"/>
+        
+        <!-- https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/ -->
+        <meta name="apple-mobile-web-app-capable"          content="yes"/>
+        <meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+        
+        <meta name="viewport" content="user-scalable=no, width=device-width"/>
+        
+        <link rel="apple-touch-icon"          href="./apple-touch-icon_114x114.png"/>
+        <link rel="apple-touch-startup-image" href="./startup_320x460.png"/> <!-- iPad 1004x768 -->
+        
+        <style>
+            canvas, body {
+                padding: 0;
+                margin: 0;
+                border-style: dotted;
+                border-width: 0;
+            }
+        </style>
+    </head>
+        
+    <body ontouchmove="BlockMove(event);">
+        <h1 onclick="location.reload();">Mars Voyager on iPhone Test</h1>
+        
+        <a href="https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/">iPhone</a>
+        <a href="https://ryanve.com/lab/dimensions/">Ryanve Live properties</a>
+        
+        <pre id="info"></pre>
+        
+        <div id="Footer" data-depth="../" data-topic="iPhone Test" data-version="1.0"></div> 
+               
+        <canvas id="canvas" onclick="getSizeInfo();"></canvas>
+
+        <script>//<![CDATA[
+        "use strict"; // don't allow hoisting or undeclared variables
+        const LOCALEXECUTION = (location.href.indexOf("file:") == 0);
+        const SETTINGS = { // updated by bash at deployment
+             fileLastModified: "2022-09-17T16:30Z",
+             debug: (true && LOCALEXECUTION),
+        };
+        updatePage(SETTINGS);
+        const DEBUG = SETTINGS.debug;
+        
+        
+        // https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/
+        function BlockMove(event) {
+            // Tell Safari not to move the window.
+            event.preventDefault() ;
+        }
+ 
+        // https://developer.mozilla.org/en-US/docs/Web/API/Window/devicePixelRatio
+        const canvas2 = document.getElementById('canvas');
+        const ctx2 = canvas2.getContext('2d');
+        
+
+        // https://davidwalsh.name/orientation-change
+        let portrait = window.matchMedia("(orientation: portrait)");
+        if (portrait.matches) {  
+            document.getElementById("info").textContent = "portrait\n" + getSizeInfo();
+        } else {  
+            document.getElementById("info").textContent = "landscape\n" + getSizeInfo();
+        }
+        // do it again, to get rid of measurement of horizontal scrollbar
+        setTimeout(getSizeInfo, 100);
+        setTimeout(getSizeInfo, 200);
+        
+        portrait.addListener(function(e) {
+        	if (e.matches) {
+                document.getElementById("info").textContent = "changed to portrait\n" + getSizeInfo();
+        	} else {
+                document.getElementById("info").textContent = "changed to landscape\n" + getSizeInfo();
+        	}
+        });
+
+        window.addEventListener("resize", function() {
+            // Get screen size (inner/outerWidth, inner/outerHeight)
+            document.getElementById("info").textContent = "resize\n" + getSizeInfo();
+        }, false);
+        
+        
+        // compare live:
+        // https://ryanve.com/lab/dimensions/
+        function getSizeInfo() {
+            // https://stackoverflow.com/questions/1248081/how-to-get-the-browser-viewport-dimensions
+            const vw = document.documentElement.clientWidth;
+            const vh = document.documentElement.clientHeight;                    
+
+            // Set display size (css pixels).
+            const w = vw - canvas2.offsetLeft;
+            const h = vh - canvas2.offsetTop;
+            canvas2.style.width = `${w}px`;
+            canvas2.style.height = `${h}px`;
+
+            // Set actual size in memory (scaled to account for extra pixel density).
+            const scale = window.devicePixelRatio;
+            canvas2.width = Math.floor(w * scale);
+            canvas2.height = Math.floor(h * scale);
+
+            // Normalize coordinate system to use CSS pixels.
+            ctx2.scale(scale, scale);
+
+            ctx2.fillStyle = "yellow";
+            ctx2.fillRect(0, 0, w, h);
+            ctx2.fillStyle = "gray";
+            const s = 2*scale;
+            ctx2.fillRect(s, s, w - 2*s, h - 2*s);
+            
+            return "Width: " + screen.width +
+            "\nheight: " + screen.height +
+            "\navailWidth: " + screen.availWidth +
+            "\navailHeight: " + screen.availHeight +
+            "\ncolorDepth: " + screen.colorDepth +
+            "\npixelDepth: " + screen.pixelDepth +
+
+            "\nvw: " + vw +
+            "\nvh: " + vh +
+            "\ninnerWidth: " + window.innerWidth +
+            "\ninnerHeight: " + window.innerHeight +
+            
+            "\noffsetLeft: " + canvas2.offsetLeft +
+            "\noffsetTop: " + canvas2.offsetTop +
+            
+            
+            "\ndevicePixelRatio: " + window.devicePixelRatio; // changes with zoom, static on mobile
+        }
+        
+        
+        //]]></script>
+    </body>
+</html>
