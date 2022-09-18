@@ -45,11 +45,13 @@
         
         <meta name="msapplication-config"    content="../icons/browserconfig.xml?v=1"/>
         <meta name="msapplication-TileColor" content="#2b5797"/>
-        <meta name="theme-color"             content="#ffffff"/>
         
+        <!--<meta name="theme-color"             content="#ffffff"/>--> <!-- NOTE, overrides apple-mobile-web-app-status-bar-style -->
+        
+        <!-- https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html -->
         <!-- https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/ -->
         <meta name="apple-mobile-web-app-capable"          content="yes"/> <!-- get rid of the URL and button bars -->
-        <meta name="apple-mobile-web-app-status-bar-style" content="black"/> <!-- default, black, black-translucent -->
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/> <!-- default, black, black-translucent -->
         
         <meta name="viewport" content="user-scalable=no, width=device-width"/>
         
@@ -197,26 +199,30 @@
             const textString = r;
             ctx2.fillText(textString, x, y);
             
+            // my iPhone: 
+            // portrait 14 square visible i.e. corners in round edges radius 53
+            // 14 drag bar covered (landscape and portrait)
             
             r++;
 
             return "";
         }
         function getSizeInfo2() {
-            return "Width: " + screen.width +
-            "\nheight: " + screen.height +
-            "\navailWidth: " + screen.availWidth +
+            return "Width: "  + screen.width +
+            "\nheight: "      + screen.height +
+            "\navailWidth: "  + screen.availWidth +
             "\navailHeight: " + screen.availHeight +
-            "\ncolorDepth: " + screen.colorDepth +
-            "\npixelDepth: " + screen.pixelDepth +
+            "\ncolorDepth: "  + screen.colorDepth +
+            "\npixelDepth: "  + screen.pixelDepth +
 
             "\nvw: " + document.documentElement.clientWidth +
             "\nvh: " + document.documentElement.clientHeight +
-            "\ninnerWidth: " + window.innerWidth +
+            
+            "\ninnerWidth: "  + window.innerWidth +
             "\ninnerHeight: " + window.innerHeight +
             
             "\noffsetLeft: " + canvas2.offsetLeft +
-            "\noffsetTop: " + canvas2.offsetTop +
+            "\noffsetTop: "  + canvas2.offsetTop +
             
             "\ndevicePixelRatio: " + window.devicePixelRatio; // changes with zoom, static on mobile
         }
