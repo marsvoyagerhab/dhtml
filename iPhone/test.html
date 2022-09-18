@@ -46,7 +46,7 @@
         <meta name="msapplication-config"    content="../icons/browserconfig.xml?v=1"/>
         <meta name="msapplication-TileColor" content="#2b5797"/>
         
-        <!--<meta name="theme-color"             content="#ffffff"/>--> <!-- NOTE, overrides apple-mobile-web-app-status-bar-style -->
+        <!--<meta name="theme-color"             content="#ffffff"/>--> <!-- no Firefox support. NOTE, overrides apple-mobile-web-app-status-bar-style -->
         
         <!-- https://developer.apple.com/library/archive/documentation/AppleApplications/Reference/SafariHTMLRef/Articles/MetaTags.html -->
         <!-- https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/ -->
@@ -74,7 +74,7 @@
         </style>
     </head>
         
-    <body ontouchmove="BlockMove(event);">
+    <body ontouchmove="BlockMove(event);" id="FullscreenDiv">
         <h1 onclick="location.reload();">Mars Voyager on iPhone Test</h1>
         
         <a href="https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/">iPhone</a>
@@ -83,6 +83,8 @@
         <pre id="info"></pre>
         
         <div id="Footer" data-depth="../" data-topic="iPhone Test" data-version="1.0"></div> 
+
+        <input type="button"   id="Fullscreen"  value="Full screen"/>
                
         <canvas id="canvas" onclick="getSizeInfo();"></canvas>
 
@@ -96,11 +98,15 @@
         updatePage(SETTINGS);
         const DEBUG = SETTINGS.debug;
         
+        var IsiPhone = (navigator.userAgent.indexOf("iPhone") != -1);
+        var IsiPod = (navigator.userAgent.indexOf("iPod") != -1);
+        var IsiPad = (navigator.userAgent.indexOf("iPad") != -1);
+        var isIosMobile = (IsiPhone || IsiPad || IsiPod); 
         
         // https://matt.might.net/articles/how-to-native-iphone-ipad-apps-in-javascript/
         function BlockMove(event) {
             // Tell Safari not to move the window.
-            event.preventDefault() ;
+            event.preventDefault();
         }
  
  
@@ -200,7 +206,8 @@
             ctx2.fillText(textString, x, y);
             
             // my iPhone: 
-            // portrait 14 square visible i.e. corners in round edges radius 53
+            // portrait: 14 square visible i.e. corners in round edges radius 53. Time is shown.
+            // landscape: there is a bar to the right/left, no rounded corners of content. Also time is not shown.
             // 14 drag bar covered (landscape and portrait)
             
             r++;
@@ -227,6 +234,47 @@
             "\ndevicePixelRatio: " + window.devicePixelRatio; // changes with zoom, static on mobile
         }
         
+
+        /* FULLSCREEN */
+        let m_fullscreen = false;
+        
+        document.getElementById("Fullscreen").addEventListener('click', function() {
+            openFullscreen();
+        });
+        document.addEventListener('fullscreenchange', function(event) {
+            if (m_fullscreen) {
+                closeFullscreen();
+            } else {
+                m_fullscreen = true;
+            }
+        });
+
+        // https://www.w3schools.com/jsref/met_element_exitfullscreen.asp
+        function openFullscreen() {
+            const e = document.getElementById("FullscreenDiv");
+            if (e.requestFullscreen) {
+                e.requestFullscreen();
+            } else if (e.webkitRequestFullscreen) { // Safari
+                e.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { // IE11
+                e.msRequestFullscreen();
+            }
+            setTimeout(getSizeInfo, 500);
+        }
+        function closeFullscreen() {
+            if (document.fullscreenElement) {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.webkitExitFullscreen) { // Safari
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE11
+                    document.msExitFullscreen();
+                }
+            }
+            setTimeout(function() {
+                getSizeInfo();
+            }, 500);
+        } 
         
         //]]></script>
     </body>
